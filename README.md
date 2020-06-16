@@ -20,7 +20,13 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 
 ### Pipline summary
 
-1. 
+1. Process `.fasta` file and generate `.dict` and `.fai` files
+2. Generate chromosome size file
+3. Generate indexes for :
+- [`BWA`](http://bio-bwa.sourceforge.net/)
+- [`Bowtie2`](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) 
+- [`STAR`](https://github.com/alexdobin/STAR)
+- [`hisat2`](http://ccb.jhu.edu/software/hisat2/index.shtml)
 
 ### Quick help
 
