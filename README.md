@@ -14,7 +14,6 @@
 
 The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. 
 It comes with conda / singularity containers making installation easier and results highly reproducible.
-The code template used for this pipeline was inspired from the [nf-core](https://nf-co.re/) project.
 
 The goal of this pipeline is to generate annotation and indexes files in a standardized way for production analysis pipelines.
 
@@ -78,26 +77,12 @@ nextflow run main.nf -profile test,conda
 
 ```
 
-#### Run the pipeline from a sample plan
-
-```
-nextflow run main.nf --samplePlan MY_SAMPLE_PLAN --genome 'mm10' --paternal '129S1_SvImJ' --maternal 'CAST_EiJ' --outdir MY_OUTPUT_DIR -profile conda
-
-```
-
 #### Run the pipeline on a computational cluster
 
 ```
-echo "nextflow run main.nf --reads '*.R{1,2}.fastq.gz' --genome 'mm10' --paternal '129S1_SvImJ' --maternal 'CAST_EiJ' --outdir MY_OUTPUT_DIR -profile singularity,cluster" | qsub -N asmapping"
+echo "nextflow run main.nf --fasta '*.fasta' --outdir MY_OUTPUT_DIR -profile singularity,cluster" | qsub -N makeAnnot"
 
 ```
-
-### Run the pipeline step-by-step
-
-Some of the steps as building the reference or the genome indexes can take quite a lot of time.
-Therefore, the pipeline should be able to run from a reference file or pre-computed indexes.
-
-Here are a few examples. Note that in the case of parental mapping, references or indexes can be provided using a 'comma' separatated list.
 
 ### Defining the '-profile'
 
