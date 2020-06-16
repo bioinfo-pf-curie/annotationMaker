@@ -160,10 +160,10 @@ process indexFasta {
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   input:
-  file(fasta) from chFasta()
+  file(fasta) from chFasta
 
   output:
-  file(fasta), file("*.faidx") into chFastaDict, chFastaSize 
+  set file(fasta), file("*.fai") into chFastaDict, chFastaSize 
 
   script:
   """
@@ -178,7 +178,7 @@ process makeDict {
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   input:
-  file(fasta), file(faidx) from chFastaDict()
+  set file(fasta), file(faidx) from chFastaDict
 
   output:
   file(".dict") into chDict
@@ -197,7 +197,7 @@ process makeChromSizes {
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   input:
-  file(fasta), file(faidx) from chFastaSize()
+  set file(fasta), file(faidx) from chFastaSize
 
   output:
   file("*sizes") into chChromSize
@@ -222,7 +222,7 @@ process makeBwaIndex {
   !('bwa' in aligners)
    
   input:
-  file(fasta) from chFastaBwa()
+  file(fasta) from chFastaBwa
 
   output:
   file "bwa" into chBwaIdx
