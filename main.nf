@@ -34,16 +34,14 @@ def helpMessage() {
     ======================================================================
 
     Usage:
-    nextflow run main.nf --reads '*_R{1,2}.fastq.gz' --genome mm9 -profile conda
-    nextflow run main.nf --samplePlan sample_plan --genome mm9 -profile conda
-
+    nextflow run main.nf --fasta '*.fasta' --gtf '*.gtf' -profile conda
 
     Mandatory arguments:
       --fasta [file]                Path to input data (must be surrounded with quotes)
-      --gtf [file]                  Path to GTF file with gene annotation
       -profile [str]                Configuration profile to use. test / conda / toolsPath / singularity / cluster (see below)
     
     Optional arguments:
+      --gtf [file]                  Path to GTF file with gene annotation
       --build                       Build name to use for genome index
       --indexes                     List of indexes to build. Available: all,bwa,star,bowtie2,hisat2. Default: all
 
@@ -52,7 +50,6 @@ def helpMessage() {
       -w/--work-dir [file]          The temporary directory where intermediate data will be saved
       --email [str]                 Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits
       -name [str]                   Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
-
 
     =======================================================
     Available Profiles
