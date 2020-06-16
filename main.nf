@@ -181,7 +181,7 @@ process makeDict {
   set file(fasta), file(faidx) from chFastaDict
 
   output:
-  file(".dict") into chDict
+  file("*.dict") into chDict
 
   script:
   pfix = fasta.toString() - /(.fa)?(.fasta)?/
@@ -277,7 +277,7 @@ process makeBowtie2Index {
 
 process makeHisat2Splicesites {
   label 'process_low'
-  publishDir "${params.outdir}/reference_genome/indexes", mode: 'copy',
+  publishDir "${params.outdir}/indexes/hisat2", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   when:
@@ -291,13 +291,14 @@ process makeHisat2Splicesites {
 
   script:
   """
+  mkdir -p hisat2
   hisat2_extract_splice_sites.py $gtf > ${gtf.baseName}.hisat2_splice_sites.txt
   """
 }
 
 process makeHisat2Index {
   label 'process_extra'
-  publishDir "${params.outdir}/reference_genome/indexes", mode: 'copy',
+  publishDir "${params.outdir}/indexes/hisat2", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   when:
