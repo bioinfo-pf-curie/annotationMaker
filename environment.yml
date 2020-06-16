@@ -1,0 +1,15 @@
+# You can use this file to create a conda environment for this pipeline:
+#   conda env create -f environment.yml
+name: as-mapping-1.0
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - bioconda::samtools=1.9
+  - bioconda::star=2.7.4a
+  - bioconda::hisat2=2.1.0
+  - bioconda::bowtie2=2.2.5
+  - bioconda::bwa=0.7.17
+  - bioconda::picard=2.19.0
+
