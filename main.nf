@@ -30,7 +30,7 @@ def helpMessage() {
     }
 
     log.info """
-    as-mapping v${workflow.manifest.version}
+    annotationMaker v${workflow.manifest.version}
     ======================================================================
 
     Usage:
