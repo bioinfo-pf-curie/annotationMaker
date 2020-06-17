@@ -73,7 +73,6 @@ if (params.help){
     exit 0
 }
 
-
 def defineAligners() {
   return [
         'bwa',
@@ -92,30 +91,67 @@ aligners = params.indexes ? params.indexes == 'all' ? alignersList : params.inde
 if (!checkParameterList(aligners, alignersList)) exit 1, 'Unknown Aligner(s), see --help for more information'
 
 
-
 /*
  * CHANNELS
  */
 
 // Reference Genome
-Channel.fromPath("${params.fasta}")
-       .ifEmpty { exit 1, "Reference Genome not found: ${params.fasta}" }
-       .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2 }
+if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
+   exit 1, "The provided genome '${params.genome}' is not available in the genomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
+}
+
+if (params.genome){
+  fastaURL = params.genome ? params.genomes[ params.genome ].fasta ?: false : false
+  if (fastaURL){
+    Channel.from(fastaURL)
+      .ifEmpty { exit 1, "Reference Genome not found: ${fastaURL}" }
+      .set { chFastaLink }
+  }else{
+    exit 1, "Fasta file not found for ${params.genome} : ${fastaURL}"
+  }
+}else if (params.fasta){
+  Channel.fromPath("${params.fasta}")
+    .ifEmpty { exit 1, "Reference Genome not found: ${params.fasta}" }
+    .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2 }
+  chFastaLink = Channel.empty()
+}
 
 // GTF
-if( params.gtf ){
+if (params.genome){
+  gtfURL = params.genome ? params.genomes[ params.genome ].gtf ?: false : false
+  if (gtfURL){
+    Channel.from(gtfURL)
+      .ifEmpty { exit 1, "Reference GTF not found: ${fastaGTF}" }
+      .set { chGtfLink } 
+  }else{
+    log.warn("No GTF information detected for ${params.genome}")
+    chGtf = Channel.empty() 
+    chGtfHisat2Splicesites = Channel.empty()
+    chGtfHisat2Index = Channel.empty()
+    chGtfLink = Channel.empty()
+  }
+}else if( params.gtf ){
     Channel
         .fromPath(params.gtf)
         .ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
-        .into { gtfHisat2Splicesites; gtfHisat2Index; chGtf }
+        .into { chGtfHisat2Splicesites; chGtfHisat2Index; chGtf }
+    chGtfLink = Channel.empty()
+}else{
+  chGtf = Channel.empty()
+  chGtfHisat2Splicesites = Channel.empty()
+  chGtfHisat2Index = Channel.empty()
+  chGtfLink = Channel.empty()
 }
 
 if ( params.build ){
   build = params.build
 }else{
-  build = params.fasta.baseName - ~/(.fa)?(.fasta)?/
+  if (params.genome){
+    build = params.genome
+  }else{
+    build = params.fasta.baseName - ~/(.fa)?(.fasta)?/
+  }
 }
-
 
 // Header log info
 if ("${workflow.manifest.version}" =~ /dev/ ){
@@ -125,13 +161,21 @@ if ("${workflow.manifest.version}" =~ /dev/ ){
 
 log.info """=======================================================
 
-asmapping : Annotation Maker workflow v${workflow.manifest.version}
+Annotation Maker workflow v${workflow.manifest.version}
 ======================================================="""
 def summary = [:]
 summary['Command Line'] = workflow.commandLine
-summary['Fasta']          = params.fasta
+if (params.genome){
+summary['Fasta']          = fastaURL
+}else{
+summary['Fasta']          = params.fasta 
+}
 summary['Build']          = build
-
+if (params.genome){
+summary['Gtf']            = gtfURL
+}else{
+summary['Gtf']            = params.gtf
+}
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
 summary['Max Time']       = params.max_time
@@ -148,7 +192,72 @@ log.info summary.collect { k,v -> "${k.padRight(15)}: $v" }.join("\n")
 log.info "========================================="
 
 /*
- * PREPROCESSING - Prepare Genome
+ * DOWNLOAD
+ */
+
+process getFasta {
+  label 'process_small'
+  publishDir "${params.outdir}/genome", mode: 'copy',
+    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
+
+  input:
+  val(url) from chFastaLink
+
+  output:
+  file("*.fa") into chFastaURL
+
+  script:
+  if (url.endsWith(".tar.gz")){
+  """
+  wget ${url} -O chromFa.tar.gz
+  
+  mkdir ./tmp
+  tar zxvf chromFa.tar.gz -C ./tmp
+  for i in \$(ls tmp/*.fa | grep -v "_" | sort -V); do cat \$i >> ${build}.fa; done
+  for i in \$(ls tmp/*.fa | grep "_" | sort -V); do cat \$i >> ${build}.fa; done
+  rm -rf ./tmp
+  """
+  }else if (url.endsWith(".gz")){
+  """
+  wget ${url} -O ${build}.fa.gz
+  gzip ${build}.fa.gz
+  """
+  }else{
+  """
+  wget ${url} -O ${build}.fa
+  """
+  }
+}
+
+process getGtf {
+  label 'process_small'
+  publishDir "${params.outdir}/gtf", mode: 'copy'
+
+  input:
+  val(url) from chGtfLink
+
+  output:
+  file("*.gtf") into chGtfURL
+
+  script:
+  if (url.endsWith(".gz")){
+  """
+  wget ${url} 
+  gzip *.gz
+  """
+  }else{
+  wget ${url} 
+  }
+}
+
+if (params.genome){
+  chFastaURL.into{chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2}
+  chGtfURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf}
+}
+
+
+/*
+ * FASTA PROCESSING
  */
 
 process indexFasta {
@@ -272,6 +381,7 @@ process makeBowtie2Index {
   """
 }
 
+
 process makeHisat2Splicesites {
   label 'process_low'
   publishDir "${params.outdir}/indexes/hisat2", mode: 'copy',
@@ -281,7 +391,7 @@ process makeHisat2Splicesites {
   !('hisat2' in aligners)
 
   input:
-  file gtf from gtfHisat2Splicesites.collect()
+  file gtf from chGtfHisat2Splicesites.collect()
 
   output:
   file "${gtf.baseName}.hisat2_splice_sites.txt" into indexingSplicesites
@@ -304,7 +414,7 @@ process makeHisat2Index {
   input:
   file fasta from chFastaHisat2
   file indexing_splicesites from indexingSplicesites.collect()
-  file gtf from gtfHisat2Index.collect()
+  file gtf from chGtfHisat2Index.collect()
 
   output:
   file("hisat2") into chHisat2Idx
@@ -316,6 +426,7 @@ process makeHisat2Index {
   hisat2-build -p ${task.cpus} --ss $indexing_splicesites --exon ${gtf.baseName}.hisat2_exons.txt $fasta hisat2/${build}
   """
 }
+
 
 
 /*
