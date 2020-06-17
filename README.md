@@ -8,8 +8,6 @@
 [![Singularity Container available](https://img.shields.io/badge/singularity-available-7E4C74.svg)](https://singularity.lbl.gov/)
 <!--[![Docker Container available](https://img.shields.io/badge/docker-available-003399.svg)](https://www.docker.com/)-->
 
-## !! UNDER CONSTRUCTION !! 
-
 ### Introduction
 
 The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. 
@@ -26,6 +24,7 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 - [`Bowtie2`](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) 
 - [`STAR`](https://github.com/alexdobin/STAR)
 - [`hisat2`](http://ccb.jhu.edu/software/hisat2/index.shtml)
+4. Process GTF annotation file for downstream analysis tools
 
 ### Quick help
 
@@ -37,12 +36,16 @@ annotationMaker v1.0.1dev
 ======================================================================
 
 Usage:
+nextflow run main.nf --genome 'hg19' -profile conda
 nextflow run main.nf --fasta '*.fasta' --gtf '*.gtf' -profile conda
 
 Mandatory arguments:
+  --genome [str]                Reference genome name and annotations to use
+  -profile [str]                Configuration profile to use. test / conda / toolsPath / singularity / cluster (see below)
+  
+Optional arguments: If --genome is not specified
   --fasta [file]                Path to input data (must be surrounded with quotes)
   --gtf [file]                  Path to GTF file with gene annotation
-  -profile [str]                Configuration profile to use. test / conda / toolsPath / singularity / cluster (see below)
 	  
 Optional arguments:
   --build                       Build name to use for genome index
@@ -80,7 +83,7 @@ nextflow run main.nf -profile test,conda
 #### Run the pipeline on a computational cluster
 
 ```
-echo "nextflow run main.nf --fasta '*.fasta' --outdir MY_OUTPUT_DIR -profile singularity,cluster" | qsub -N makeAnnot"
+echo "nextflow run main.nf --genome 'hg19' --outdir MY_OUTPUT_DIR -profile singularity,cluster" | qsub -N makeAnnot"
 
 ```
 

@@ -34,11 +34,16 @@ def helpMessage() {
     ======================================================================
 
     Usage:
+    nextflow run main.nf --genome 'hg19' -profile conda
     nextflow run main.nf --fasta '*.fasta' --gtf '*.gtf' -profile conda
 
     Mandatory arguments:
-      --fasta [file]                Path to input data (must be surrounded with quotes)
+      --genome [str]                Reference genome name and annotations to use
       -profile [str]                Configuration profile to use. test / conda / toolsPath / singularity / cluster (see below)
+
+    Optional arguments: If --genome is not specified
+      --fasta [file]                Path to input data (must be surrounded with quotes)
+      --gtf [file]                  Path to GTF file with gene annotation
     
     Optional arguments:
       --gtf [file]                  Path to GTF file with gene annotation
