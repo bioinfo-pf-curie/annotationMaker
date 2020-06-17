@@ -37,7 +37,7 @@ annotationMaker v1.0.1dev
 ======================================================================
 
 Usage:
-nextflow run main.nf --fasta '*.fasta' -profile conda
+nextflow run main.nf --fasta '*.fasta' --gtf '*.gtf' -profile conda
 
 Mandatory arguments:
   --fasta [file]                Path to input data (must be surrounded with quotes)
