@@ -1,6 +1,6 @@
 # You can use this file to create a conda environment for this pipeline:
 #   conda env create -f environment.yml
-name: as-mapping-1.0
+name: annotationMaker-1.0
 channels:
   - bioconda
   - conda-forge
@@ -11,5 +11,11 @@ dependencies:
   - bioconda::hisat2=2.1.0
   - bioconda::bowtie2=2.2.5
   - bioconda::bwa=0.7.17
-  - bioconda::picard=2.19.0
-
+  - bioconda::picard=2.23.0
+  - bioconda::bedtools=2.29.2
+  - bioconda::ucsc-gtftogenepred=377
+  - bioconda::ucsc-genepredtobed=377
+  - bioconda::ucsc-gff3togenepred=377
+  - conda-forge::r-base=3.5.1
+  - bioconda::bioconductor-genomicfeatures
+  - bioconda::bioconductor-rtracklayer

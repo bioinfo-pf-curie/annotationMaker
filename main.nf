@@ -428,6 +428,30 @@ process makeHisat2Index {
 }
 
 
+/***********************
+ * GTF Annotation
+ */
+
+
+process gtf2annot {
+  label 'process_low'
+  publishDir "${params.outdir}/gtf", mode: 'copy',
+    saveAs: {filename -> if (filename.indexOf(".bed") > 0) "parseGTFAnnotation/$filename" else filename}
+
+  input:
+  file(gtf) from chGtf
+  file(chromSize) from chChromSize
+
+  output:
+  file("${gtf}") into chGtfOut
+  file("*.bed") into chAnnot
+
+  script:
+  """
+  parseGTFAnnotation.sh -i ${gtf} -g ${chromSize}
+  """
+}
+
 
 /*
  * Sub-routine
