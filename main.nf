@@ -154,7 +154,8 @@ if ( params.build ){
   if (params.genome){
     build = params.genome
   }else{
-    build = params.fasta.baseName - ~/(.fa)?(.fasta)?/
+    fafile = file(params.fasta)
+    build = fafile.baseName - ~/(.fa)?(.fasta)?(.gz)?/
   }
 }
 
