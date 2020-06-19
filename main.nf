@@ -327,7 +327,7 @@ process makeChromSizes {
 
 process makeBwaIndex {
   label 'process_medium'
-  publishDir "${params.outdir}/indexes/bwa", mode: 'copy',
+  publishDir "${params.outdir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   when: 
@@ -368,7 +368,7 @@ process makeStarIndex {
 
 process makeBowtie2Index {
   label 'process_low'
-  publishDir "${params.outdir}/indexes/bowtie2", mode: 'copy',
+  publishDir "${params.outdir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   when:
@@ -411,7 +411,7 @@ process makeHisat2Splicesites {
 
 process makeHisat2Index {
   label 'process_extra'
-  publishDir "${params.outdir}/indexes/hisat2", mode: 'copy',
+  publishDir "${params.outdir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   when:
@@ -450,7 +450,7 @@ process gtf2annot {
 
   output:
   file("${gtf}") into chGtfOut
-  file("*.bed") into chAnnot
+  file("*.bed*") into chAnnot
 
   script:
   """
