@@ -275,7 +275,7 @@ process indexFasta {
   file(fasta) from chFasta
 
   output:
-  set file(fasta), file("*.fai") into chFastaDict, chFastaSize 
+  set file(fasta), file("*.fai") into chFastaDict, chFastaSize, chFastaEffgsize 
 
   script:
   """
@@ -318,6 +318,25 @@ process makeChromSizes {
   pfix = fasta.toString() - /(.fa)?(.fasta)?/
   """
   cut -f1,2 ${faidx} > chrom_${pfix}.sizes
+  """
+}
+
+process effectiveGenomeSize {
+  label 'process_small'
+  publishDir "${params.outdir}/genome", mode: 'copy',
+    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
+
+  input:
+  set file(fasta), file(faidx) from chFastaEffgsize
+
+  output:
+  file("*effgsize") into chChromSize
+
+  script:
+  pfix = fasta.toString() - /(.fa)?(.fasta)?/
+  """
+  faSize ${fasta} > ${pfix}_fasize.log
+  awk -v genome=${pfix} 'NR==1{print genome"\t"$5}' > ${pfix}.effgsize
   """
 }
 
