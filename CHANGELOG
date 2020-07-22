@@ -3,6 +3,8 @@ CHANGES IN VERSION 1.1.0
 
 NEW FEATURES
 
+   o Add effective genome size calculation 
+   (see https://deeptools.readthedocs.io/en/develop/content/help_faq.html#how-do-i-calculate-the-effective-genome-size-for-an-organism-that-s-not-in-your-list)
    o Add gft parser
    o Allow URL download through genome.config
 
