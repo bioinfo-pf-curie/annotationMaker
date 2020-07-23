@@ -7,7 +7,7 @@ channels:
   - defaults
 dependencies:
   - bioconda::samtools=1.9
-  - bioconda::star=2.7.4a
+  - bioconda::star=2.6.1b
   - bioconda::hisat2=2.1.0
   - bioconda::bowtie2=2.2.5
   - bioconda::bwa=0.7.17

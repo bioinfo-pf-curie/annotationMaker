@@ -87,6 +87,14 @@ def defineAligners() {
 }
 
 // Compare each parameter with a list of parameters
+static def checkParameterExistence(it, list) {
+  if (!list.contains(it)) {
+    println("Unknown parameter: ${it}")
+    return false
+  }
+  return true
+}
+
 def checkParameterList(list, realList) {
     return list.every{ checkParameterExistence(it, realList) }
 }
@@ -182,10 +190,10 @@ summary['Gtf']            = gtfURL
 }else{
 summary['Gtf']            = params.gtf
 }
+summary['Indexes']         = aligners
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
 summary['Max Time']       = params.max_time
-summary['Container Engine'] = workflow.containerEngine
 summary['Current home']   = "$HOME"
 summary['Current user']   = "$USER"
 summary['Current path']   = "$PWD"
@@ -226,7 +234,7 @@ process getFasta {
   }else if (url.endsWith(".gz")){
   """
   wget ${url} -O ${build}.fa.gz
-  gzip ${build}.fa.gz
+  gunzip ${build}.fa.gz
   """
   }else{
   """
@@ -249,7 +257,7 @@ process getGtf {
   if (url.endsWith(".gz")){
   """
   wget ${url} 
-  gzip *.gz
+  gunzip *.gz
   """
   }else{
   wget ${url} 
@@ -330,13 +338,13 @@ process effectiveGenomeSize {
   set file(fasta), file(faidx) from chFastaEffgsize
 
   output:
-  file("*effgsize") into chChromSize
+  file("*effgsize") into chEffSize
 
   script:
   pfix = fasta.toString() - /(.fa)?(.fasta)?/
   """
   faSize ${fasta} > ${pfix}_fasize.log
-  awk -v genome=${pfix} 'NR==1{print genome"\t"$5}' > ${pfix}.effgsize
+  awk -v genome=${pfix} 'NR==1{print genome"\t"\$5}' > ${pfix}.effgsize
   """
 }
 
@@ -350,7 +358,7 @@ process makeBwaIndex {
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   when: 
-  !('bwa' in aligners)
+  'bwa' in aligners
    
   input:
   file(fasta) from chFastaBwa
@@ -367,11 +375,11 @@ process makeBwaIndex {
 
 process makeStarIndex {
   label 'process_high'
-  publishDir "${params.outdir}/indexes/star", mode: 'copy',
+  publishDir "${params.outdir}/indexes/STAR", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   when:
-  !('star' in aligners)
+  'star' in aligners
 
   input:
   file(fasta) from chFastaStar
@@ -381,6 +389,7 @@ process makeStarIndex {
 
   script:
   """
+  mkdir -p STAR
   STAR --runMode genomeGenerate --limitGenomeGenerateRAM 33524399488 --runThreadN ${task.cpus} --genomeDir STAR --genomeFastaFiles $fasta
   """
 }
@@ -391,7 +400,7 @@ process makeBowtie2Index {
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   when:
-  !('bowtie2' in aligners)
+  'bowtie2' in aligners
 
   input:
   file(fasta) from chFastaBowtie2
@@ -413,7 +422,7 @@ process makeHisat2Splicesites {
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   when:
-  !('hisat2' in aligners)
+  'hisat2' in aligners
 
   input:
   file gtf from chGtfHisat2Splicesites.collect()
@@ -434,7 +443,7 @@ process makeHisat2Index {
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   when:
-  !('hisat2' in aligners)
+  'hisat2' in aligners
 
   input:
   file fasta from chFastaHisat2
