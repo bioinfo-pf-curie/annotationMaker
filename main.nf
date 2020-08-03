@@ -51,6 +51,7 @@ def helpMessage() {
       --indexes                     List of indexes to build. Available: all,bwa,star,bowtie2,hisat2. Default: all
 
     Other options:
+      --skipGtfProcessing           Skip the GTF file processing
       --outdir [file]               The output directory where the results will be saved
       -w/--work-dir [file]          The temporary directory where intermediate data will be saved
       --email [str]                 Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits
@@ -190,7 +191,8 @@ summary['Gtf']            = gtfURL
 }else{
 summary['Gtf']            = params.gtf
 }
-summary['Indexes']         = aligners
+summary['Indexes']        = aligners
+summary['Gtf parsing']     = params.skipGtfProcessing ? 'Yes' : 'No'
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
 summary['Max Time']       = params.max_time
@@ -344,7 +346,7 @@ process effectiveGenomeSize {
   pfix = fasta.toString() - /(.fa)?(.fasta)?/
   """
   faSize ${fasta} > ${pfix}_fasize.log
-  awk -v genome=${pfix} 'NR==1{print genome"\t"\$5}' > ${pfix}.effgsize
+  awk -v genome=${pfix} 'NR==1{print genome"\t"\$5}' ${pfix}_fasize.log > ${pfix}.effgsize
   """
 }
 
@@ -471,6 +473,9 @@ process gtf2annot {
   label 'process_low'
   publishDir "${params.outdir}/gtf", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".bed") > 0) "parseGTFAnnotation/$filename" else filename}
+
+  when:
+  ! params.skipGtfProcessing
 
   input:
   file(gtf) from chGtf

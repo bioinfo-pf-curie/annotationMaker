@@ -94,7 +94,6 @@ elif [[ ${FORMAT} == "gtf" ]]; then
 	sort -k1,1V -k2,2n -k3,3n ${OUTPUT_GENE}_tmp > ${OUTPUT_GENE}
 	rm -f ${OUTPUT_GENE}_tmp
     else
-	echo -e "toto"
 	## Deal with special case for FlyBase/SGD
 	awk -F"\t" 'BEGIN{OFS="\t"} $3=="gene"{split($9,annot,";"); for (i=1;i<=length(annot);i++){split(annot[i],b," "); hannot[b[1]]=b[2]; gsub("\"","",hannot[b[1]])}; if ($2=="FlyBase"){n=hannot["gene_symbol"]} else if ($2=="SGD"){n=hannot["gene_id"]"|"hannot["gene_name"]; gsub("\\|$","",n)} else{n=hannot["gene_name"]}; print $1,$4-1,$5,n,"0",$7; delete hannot}' ${INPUT} | sort -k1,1V -k2,2n -k3,3n > ${OUTPUT_GENE}
     fi
