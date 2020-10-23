@@ -41,8 +41,9 @@ nextflow run main.nf --fasta '*.fasta' --gtf '*.gtf' -profile conda
 
 Mandatory arguments:
   --genome [str]                Reference genome name and annotations to use
+  --genomeAnnotationPath [file] Path to genome annotation folder
   -profile [str]                Configuration profile to use. test / conda / toolsPath / singularity / cluster (see below)
-  
+ 
 Optional arguments: If --genome is not specified
   --fasta [file]                Path to input data (must be surrounded with quotes)
   --gtf [file]                  Path to GTF file with gene annotation
@@ -60,12 +61,14 @@ Other options:
 			  
 =======================================================
 Available Profiles
-				  
-  -profile test                Set up the test dataset
-  -profile conda               Build a new conda environment before running the pipeline
-  -profile toolsPath           Use the paths defined in configuration for each tool
-  -profile singularity         Use the Singularity images for each process
-  -profile cluster             Run the workflow on the cluster, instead of locally							
+  -profile test                    Run the test dataset
+  -profile conda                   Build a new conda environment before running the pipeline. Use `--condaCacheDir` to define the conda cache path
+  -profile multiconda              Build a new conda environment per process before running the pipeline. Use `--condaCacheDir` to define the conda cache path
+  -profile path                    Use the installation path defined for all tools. Use `--globalPath` to define the insallation path
+  -profile multipath               Use the installation paths defined for each tool. Use `--globalPath` to define the insallation path
+  -profile docker                  Use the Docker images for each process
+  -profile singularity             Use the Singularity images for each process. Use `--singularityPath` to define the insallation path
+  -profile cluster                 Run the workflow on the cluster, instead of locally
 ```
 
 ### Quick run
@@ -98,7 +101,7 @@ Here are a few examples of how to set the profile option.
 
 ```
 ## Run the pipeline locally, using the paths defined in the configuration for each tool (see conf.tool-path.config)
--profile toolsPath
+-profile path --globalPath 'PATH_TO_BINARY'
 
 ## Run the pipeline on the cluster, using the Singularity containers
 -profile cluster,singularity

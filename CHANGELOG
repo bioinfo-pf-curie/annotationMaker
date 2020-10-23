@@ -1,4 +1,11 @@
 ***********************************
+CHANGE IN VERSION 1.2.0
+
+NEW FEATURES
+
+   o Support gff annotation with `gffread`
+
+***********************************
 CHANGES IN VERSION 1.1.0
 
 NEW FEATURES
