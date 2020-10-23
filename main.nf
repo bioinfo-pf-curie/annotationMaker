@@ -177,7 +177,7 @@ if ( params.build ){
     build = params.genome
   }else{
     fafile = file(params.fasta)
-    build = fafile.baseName - ~/(.fa)?(.fasta)?(.gz)?/
+    build = fafile.baseName - ~/(\.fa)?(\.fasta)?(\.gz)?$/
   }
 }
 
@@ -250,12 +250,12 @@ process getFasta {
   """
   }else if (url.endsWith(".gz")){
   """
-  wget ${url} -O ${build}.fa.gz
-  gunzip ${build}.fa.gz
+  wget ${url}
+  gunzip *gz
   """
   }else{
   """
-  wget ${url} -O ${build}.fa
+  wget ${url}
   """
   }
 }
@@ -360,7 +360,7 @@ process makeDict {
   file("*.dict") into chDict
 
   script:
-  pfix = fasta.toString() - /(.fa)?(.fasta)?/
+  pfix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
   """
   picard CreateSequenceDictionary REFERENCE=${fasta} OUTPUT=${pfix}.dict
   """
@@ -381,9 +381,8 @@ process makeChromSizes {
   file("*sizes") into (chChromSize, chChromSizeStar)
 
   script:
-  pfix = fasta.toString() - /(.fa)?(.fasta)?/
   """
-  cut -f1,2 ${faidx} > chrom_${pfix}.sizes
+  cut -f1,2 ${faidx} > chrom_${build}.sizes
   """
 }
 
@@ -402,10 +401,9 @@ process effectiveGenomeSize {
   file("*effgsize") into chEffSize
 
   script:
-  pfix = fasta.toString() - /(.fa)?(.fasta)?/
   """
-  faSize ${fasta} > ${pfix}_fasize.log
-  awk -v genome=${pfix} 'NR==1{print genome"\t"\$5}' ${pfix}_fasize.log > ${pfix}.effgsize
+  faSize ${fasta} > ${build}_fasize.log
+  awk -v genome=${build} 'NR==1{print genome"\t"\$5}' ${build}_fasize.log > ${build}.effgsize
   """
 }
 
@@ -431,9 +429,10 @@ process makeBwaIndex {
   file "bwa" into chBwaIdx
 
   script:
+  pfix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
   """
   mkdir bwa
-  bwa index -p bwa/${build} ${fasta} > bwa.log 2>&1
+  bwa index -p bwa/${pfix} ${fasta} > bwa.log 2>&1
   """
 }
 
@@ -453,14 +452,14 @@ process makeStarIndex {
   file(chrSize) from chChromSizeStar
 
   output:
-  file "STAR" into chStarIdx
+  file "STAR*" into chStarIdx
 
   script:
   """
   odir=\$(STAR --version | cut -d_ -f1,2)
   mkdir -p \${odir}
   chrBinNbits=\$(awk -F"\t" '{s+=\$2;l+=1}END{p=log(s/l)/log(2); printf("%.0f", (p<18 ? p:18))}' ${chrSize})
-  STAR --runMode genomeGenerate --limitGenomeGenerateRAM 33524399488 --genomeChrBinNbits \${chrBinNbits} --runThreadN ${task.cpus} --genomeDir ${odir} --genomeFastaFiles $fasta
+  STAR --runMode genomeGenerate --limitGenomeGenerateRAM 33524399488 --genomeChrBinNbits \${chrBinNbits} --runThreadN ${task.cpus} --genomeDir \${odir} --genomeFastaFiles $fasta
   """
 }
 
@@ -482,9 +481,10 @@ process makeBowtie2Index {
   file("bowtie2") into chBowtie2Idx
 
   script:
+  pfix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
   """
   mkdir -p bowtie2
-  bowtie2-build ${fasta} bowtie2/${build}
+  bowtie2-build ${fasta} bowtie2/${pfix}
   """
 }
 
@@ -533,10 +533,11 @@ process makeHisat2Index {
   file("hisat2") into chHisat2Idx
 
   script:
+  pfix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
   """
   mkdir -p hisat2
   hisat2_extract_exons.py $gtf > ${gtf.baseName}.hisat2_exons.txt
-  hisat2-build -p ${task.cpus} --ss $indexing_splicesites --exon ${gtf.baseName}.hisat2_exons.txt $fasta hisat2/${build}
+  hisat2-build -p ${task.cpus} --ss $indexing_splicesites --exon ${gtf.baseName}.hisat2_exons.txt $fasta hisat2/${pfix}
   """
 }
 
