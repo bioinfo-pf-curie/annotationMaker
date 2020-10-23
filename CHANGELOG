@@ -3,8 +3,12 @@ version-1.2.0
 
 NEW FEATURES
   - Support gff annotation with `gffread`
+  - add Rhopalosiphum_padi_v2 genome
+  - add ecoli_MG1655 genome
 
 SIGNIFICANT USER-VISIBLE CHANGES
+  - update the onComplete process
+  - Output STAR indexes in a folder with version number
   - Use new Newflow template
 
 ***********************************

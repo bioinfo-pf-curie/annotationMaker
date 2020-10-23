@@ -24,7 +24,7 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 - [`Bowtie2`](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) 
 - [`STAR`](https://github.com/alexdobin/STAR)
 - [`hisat2`](http://ccb.jhu.edu/software/hisat2/index.shtml)
-5. Process GTF annotation file for downstream analysis tools
+5. Process GTF/GFF annotation file for downstream analysis tools
 
 ### Quick help
 
@@ -32,7 +32,7 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 N E X T F L O W  ~  version 20.01.0
 Launching `main.nf` [furious_volta] - revision: ca21e76c70
 ======================================================================
-annotationMaker v1.0.1dev
+annotationMaker v1.1.0dev
 ======================================================================
 
 Usage:
@@ -41,21 +41,21 @@ nextflow run main.nf --fasta '*.fasta' --gtf '*.gtf' -profile conda
 
 Mandatory arguments:
   --genome [str]                Reference genome name and annotations to use
-  --genomeAnnotationPath [file] Path to genome annotation folder
+  --genomeAnnotationPath [dir] Path to genome annotation folder
   -profile [str]                Configuration profile to use. test / conda / toolsPath / singularity / cluster (see below)
  
 Optional arguments: If --genome is not specified
   --fasta [file]                Path to input data (must be surrounded with quotes)
   --gtf [file]                  Path to GTF file with gene annotation
+  --gff [file]                  Path to GFF file with gene annotation
 	  
 Optional arguments:
-  --build                       Build name to use for genome index
-  --indexes                     List of indexes to build. Available: all,bwa,star,bowtie2,hisat2. Default: all
+  --build [str]                 Build name to use for genome index
+  --indexes [str]               List of indexes to build. Available: all,bwa,star,bowtie2,hisat2,none. Default: all
 		  
 Other options:
-  --outdir [file]               The output directory where the results will be saved
-  -w/--work-dir [file]          The temporary directory where intermediate data will be saved
-  --email [str]                 Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits
+  --outDir [dir]               The output directory where the results will be saved
+  -w/--work-dir [dir]          The temporary directory where intermediate data will be saved
   -name [str]                   Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
 				  
 			  
@@ -86,7 +86,7 @@ nextflow run main.nf -profile test,conda
 #### Run the pipeline on a computational cluster
 
 ```
-echo "nextflow run main.nf --genome 'hg19' --outdir MY_OUTPUT_DIR -profile singularity,cluster" | qsub -N makeAnnot"
+echo "nextflow run main.nf --genome 'hg19' --outDir MY_OUTPUT_DIR -profile singularity,cluster" | qsub -N makeAnnot"
 
 ```
 

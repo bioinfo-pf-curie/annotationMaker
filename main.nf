@@ -14,9 +14,9 @@ This script is based on the nf-core guidelines. See https://nf-co.re/ for more i
 
 /*
 ========================================================================================
-                         Annotation Maker
+                         AnnotationMaker
 ========================================================================================
- Annotation Maker Pipeline.
+ AnnotationMaker Pipeline.
  #### Homepage / Documentation
  https://gitlab.curie.fr/data-analysis/annotationMaker
 ----------------------------------------------------------------------------------------
@@ -25,8 +25,8 @@ This script is based on the nf-core guidelines. See https://nf-co.re/ for more i
 
 def helpMessage() {
     if ("${workflow.manifest.version}" =~ /dev/ ){
-       dev_mess = file("$baseDir/assets/dev_message.txt")
-       log.info dev_mess.text
+       devMess = file("$baseDir/assets/devMessage.txt")
+       log.info devMess.text
     }
 
     log.info """
@@ -55,7 +55,6 @@ def helpMessage() {
       --skipGtfProcessing [bool]    Skip the GTF file processing
       --outDir [file]               The output directory where the results will be saved
       -w/--work-dir [file]          The temporary directory where intermediate data will be saved
-      --email [str]                 Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits
       -name [str]                   Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
 
     =======================================================
@@ -193,8 +192,8 @@ if ( params.build ){
 
 // Header log info
 if ("${workflow.manifest.version}" =~ /dev/ ){
-   dev_mess = file("$baseDir/assets/dev_message.txt")
-   log.info dev_mess.text
+   devMess = file("$baseDir/assets/devMessage.txt")
+   log.info devMess.text
 }
 
 log.info """=======================================================
@@ -216,7 +215,6 @@ if (params.gff){
 summary['Gff']            = params.gff
 }
 summary['Indexes']        = aligners
-summary['Gtf parsing']    = params.skipGtfProcessing ? 'Yes' : 'No'
 summary['Max Memory']     = params.maxMemory
 summary['Max CPUs']       = params.maxCpus
 summary['Max Time']       = params.maxTime
@@ -227,7 +225,6 @@ summary['Working dir']    = workflow.workDir
 summary['Output dir']     = params.outDir
 summary['Config Profile'] = workflow.profile
 
-if(params.email) summary['E-mail Address'] = params.email
 log.info summary.collect { k,v -> "${k.padRight(15)}: $v" }.join("\n")
 log.info "========================================="
 
@@ -469,9 +466,10 @@ process makeStarIndex {
 
   script:
   """
-  mkdir -p STAR
+  odir=\$(STAR --version | cut -d_ -f1,2)
+  mkdir -p \${odir}
   chrBinNbits=\$(awk -F"\t" '{s+=\$2;l+=1}END{p=log(s/l)/log(2); printf("%.0f", (p<18 ? p:18))}' ${chrSize})
-  STAR --runMode genomeGenerate --limitGenomeGenerateRAM 33524399488 --genomeChrBinNbits \${chrBinNbits} --runThreadN ${task.cpus} --genomeDir STAR --genomeFastaFiles $fasta
+  STAR --runMode genomeGenerate --limitGenomeGenerateRAM 33524399488 --genomeChrBinNbits \${chrBinNbits} --runThreadN ${task.cpus} --genomeDir ${odir} --genomeFastaFiles $fasta
   """
 }
 
@@ -591,6 +589,7 @@ workflow.onComplete {
     /*pipeline_report.html*/
 
     def report_fields = [:]
+    report_fields['pipeline'] = workflow.manifest.name
     report_fields['version'] = workflow.manifest.version
     report_fields['runName'] = custom_runName ?: workflow.runName
     report_fields['success'] = workflow.success
@@ -612,12 +611,12 @@ workflow.onComplete {
 
     // Render the TXT template
     def engine = new groovy.text.GStringTemplateEngine()
-    def tf = new File("$baseDir/assets/oncomplete_template.txt")
+    def tf = new File("$baseDir/assets/onCompleteTemplate.txt")
     def txt_template = engine.createTemplate(tf).make(report_fields)
     def report_txt = txt_template.toString()
     
     // Render the HTML template
-    def hf = new File("$baseDir/assets/oncomplete_template.html")
+    def hf = new File("$baseDir/assets/onCompleteTemplate.html")
     def html_template = engine.createTemplate(hf).make(report_fields)
     def report_html = html_template.toString()
 
