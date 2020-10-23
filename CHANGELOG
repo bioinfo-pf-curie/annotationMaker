@@ -2,6 +2,8 @@
 version-1.2.0
 
 NEW FEATURES
+  - Extract genes coordinates
+  - Extract protein coding genes
   - Support gff annotation with `gffread`
   - add Rhopalosiphum_padi_v2 genome
   - add ecoli_MG1655 genome

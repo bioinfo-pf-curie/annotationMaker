@@ -152,31 +152,22 @@ if (params.genome){
     chGtfLink = Channel.empty()
   }else{
     log.warn("No GTF/GFF information detected for ${params.genome}")
-    chGtf = Channel.empty() 
-    chGtfHisat2Splicesites = Channel.empty()
-    chGtfHisat2Index = Channel.empty()
-    chGffLink = Channel.empty()
-    chGtfLink = Channel.empty()
+    Channel.empty().into{ chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink }
   }
 }else if (params.gtf){
   Channel
     .fromPath(params.gtf)
     .ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
-    .into { chGtfHisat2Splicesites; chGtfHisat2Index; chGtf }
-  chGtfLink = Channel.empty()
-  chGffLink = Channel.empty()
+    .into { chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene }
+  Channel.empty().into{ chGtfLink; chGffLink }
 }else if (params.gff){
   Channel
     .fromPath(params.gff)
     .ifEmpty { exit 1, "GFF annotation file not found: ${params.gtf}" }
     .into { chGff }
-  chGffLink = Channel.empty()
-  chGtfLink = Channel.empty()
+  Channel.empty().into{ chGtfLink; chGffLink }
 }else{
-  chGtf = Channel.empty()
-  chGtfHisat2Splicesites = Channel.empty()
-  chGtfHisat2Index = Channel.empty()
-  chAnnotLink = Channel.empty()
+  Channel.empty().into{ chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink }
 }
 
 if ( params.build ){
@@ -298,7 +289,7 @@ process getAnnotation {
 if (params.genome){
   chFastaURL.into{chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2}
   if (params.gtf){
-    chAnnotURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf}
+    chAnnotURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf; chGtfBed12; chGtfGene}
   }else if (params.gff){
     chAnnotURL.set{chGff}
   }
@@ -321,7 +312,7 @@ if (params.gff && !params.gtf) {
     file gff from chGff
 
     output:
-    file "${gff.baseName}.gtf" into chGtfHisat2Splicesites, chGtfHisat2Index, chGtf
+    file "${gff.baseName}.gtf" into chGtfHisat2Splicesites, chGtfHisat2Index, chGtf, chGtfBed12, chGtfGene
 
     script:
     """
@@ -554,6 +545,31 @@ process makeHisat2Index {
  * GTF Annotation
  */
 
+// Extract protein-coding genes only
+process reduceGtf {
+  label 'unix'
+  label 'lowCpu'
+  label 'lowMem'
+
+  publishDir "${params.outDir}/gtf", mode: 'copy',
+
+  when:
+  !params.skipGtfProcessing
+
+  input:
+  file(gtf) from chGtf
+
+  output:
+  file("*proteinCoding.gtf") optional true into (chGtfReducedBed12, chGtfReducedGene)
+
+  script:
+  """
+  nbPC=\$(head -n 1000 | awk '\$0~"gene_biotype \\"protein_coding\\"" || \$0~"gene_type \\"protein_coding\\"" {print}' ${gtf} | wc -l)
+  if [[ \$nbPC -gt 0 ]]; then
+    awk '\$0~"gene_biotype \\"protein_coding\\"" || \$0~"gene_type \\"protein_coding\\"" {print}' ${gtf} > ${gtf.baseName}_proteinCoding.gtf
+  fi
+  """
+}
 
 // bed12 file are transcripts-based annotation files
 process gtf2bed12 {
@@ -567,7 +583,7 @@ process gtf2bed12 {
   !params.skipGtfProcessing
 
   input:
-  file(gtf) from chGtf
+  file(gtf) from chGtfBed12.concat(chGtfReducedBed12)
 
   output:
   file("*.bed12") into chBed12
@@ -577,6 +593,31 @@ process gtf2bed12 {
   gtfToGenePred -genePredExt -geneNameAsName2 -allErrors -ignoreGroupsWithoutExons ${gtf} ${gtf.baseName}.genepred 2> genepred.log
   genePredToBed ${gtf.baseName}.genepred ${gtf.baseName}.bed12
   """
+}
+
+// Extract gene coordinates
+process gtf2genes {
+  label 'r'
+  label 'lowCpu'
+  label 'medMem'
+
+  publishDir "${params.outDir}/gtf", mode: 'copy', 
+
+  when:
+  !params.skipGtfProcessing
+
+  input:
+  file(gtf) from chGtfGene.concat(chGtfReducedGene)
+
+  output:
+  file("*_gene.bed") into chGeneBed
+
+  script:
+  """
+  extractGeneFromGTF.r ${gtf} ${gtf.baseName}_gene.bed
+  sort -k1,1V -k2,2n ${gtf.baseName}_gene.bed > ${gtf.baseName}_gene_sorted.bed
+  mv ${gtf.baseName}_gene_sorted.bed ${gtf.baseName}_gene.bed
+  """  
 }
 
 

@@ -1,0 +1,9 @@
+name: annotr
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - conda-forge::r-base=3.5.1
+  - bioconda::bioconductor-genomicfeatures
+  - bioconda::bioconductor-rtracklayer
