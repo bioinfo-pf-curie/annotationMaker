@@ -9,7 +9,7 @@ dependencies:
   - bioconda::samtools=1.9
   - bioconda::star=2.6.1b
   - bioconda::hisat2=2.1.0
-  - bioconda::bowtie2=2.2.5
+  - bioconda::bowtie2=2.3.5
   - bioconda::bwa=0.7.17
   - bioconda::picard=2.23.0
   - bioconda::bedtools=2.29.2

@@ -1,26 +1,26 @@
 ***********************************
-CHANGE IN VERSION 1.2.0
+version-1.2.0
 
 NEW FEATURES
+  - Support gff annotation with `gffread`
 
-   o Support gff annotation with `gffread`
+SIGNIFICANT USER-VISIBLE CHANGES
+  - Use new Newflow template
 
 ***********************************
-CHANGES IN VERSION 1.1.0
+version-1.1.0
 
 NEW FEATURES
-
-   o Add effective genome size calculation 
+  - Add effective genome size calculation 
    (see https://deeptools.readthedocs.io/en/develop/content/help_faq.html#how-do-i-calculate-the-effective-genome-size-for-an-organism-that-s-not-in-your-list)
-   o Add gft parser
-   o Allow URL download through genome.config
+  - Add gtf parser
+  - Allow URL download through genome.config
 
 ***********************************
-CHANGES IN VERSION 1.0.0
+vrsion-1.0.0
 
 NEW FEATURES
-
-   o Initialise release of annotationMaker pipeline
+  - Initialise release of annotationMaker pipeline
 
 
 
