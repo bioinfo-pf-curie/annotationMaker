@@ -8,7 +8,7 @@
 * [Running the pipeline](#running-the-pipeline)
 * [Main arguments](#main-arguments)
     * [`-profile`](#-profile)
-    * [`-genome`](#-genome)
+    * [`--genome`](#--genome)
 * [Nextflow profiles](#nextflow-profiles)
 * [Job resources](#job-resources)
 * [Other command line parameters](#other-command-line-parameters)
@@ -37,7 +37,7 @@ NXF_OPTS='-Xms1g -Xmx4g'
 
 The typical command for running the pipeline is as follows:
 ```bash
-nextflow run main.nf -genome 'hg38' -profile 'conda'
+nextflow run main.nf --genome 'hg38' -profile 'conda'
 ```
 
 This will launch the pipeline with the `conda` configuration profile. See below for more information about profiles.
@@ -63,12 +63,12 @@ Use this option to set the [Nextflow profiles](profiles.md). For example:
 -profile path,cluster
 ```
 
-### `-genome`
+### `--genome`
 
 Use this to specify the genome annotation to download and process. For example :
 
 ```bash
--genome 'hg38'
+--genome 'hg38'
 ```
 
 The list of genomes (and their sources) is available in [`conf/genomes.conf`](../conf/genomes.config)
