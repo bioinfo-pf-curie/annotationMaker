@@ -240,7 +240,7 @@ process getFasta {
   script:
   if (url.endsWith(".tar.gz")){
   """
-  wget ${url} -O chromFa.tar.gz
+  wget --no-check-certificate ${url} -O chromFa.tar.gz
   
   mkdir ./tmp
   tar zxvf chromFa.tar.gz -C ./tmp
@@ -250,12 +250,12 @@ process getFasta {
   """
   }else if (url.endsWith(".gz")){
   """
-  wget ${url}
-  gunzip *gz
+  wget --no-check-certificate ${url}
+  gunzip *.gz
   """
   }else{
   """
-  wget ${url}
+  wget --no-check-certificate ${url}
   """
   }
 }
@@ -276,12 +276,12 @@ process getAnnotation {
   script:
   if (url.endsWith(".gz")){
   """
-  wget ${url} 
+  wget --no-check-certificate ${url} 
   gunzip *.gz
   """
   }else{
   """
-  wget ${url} 
+  wget --no-check-certificate ${url} 
   """
   }
 }
