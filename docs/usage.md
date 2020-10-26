@@ -8,13 +8,11 @@
 * [Running the pipeline](#running-the-pipeline)
 * [Main arguments](#main-arguments)
     * [`-profile`](#-profile)
-    * [`--reads`](#-reads)
-    * [`--samplePlan`](#-sampleplan)
+    * [`-genome`](#-genome)
 * [Nextflow profiles](#nextflow-profiles)
 * [Job resources](#job-resources)
 * [Other command line parameters](#other-command-line-parameters)
     * [`--skip*`](#-skip)
-    * [`--metadata`](#-metadata)
     * [`--outDir`](#-outDir)
     * [`-name`](#-name)
     * [`-resume`](#-resume)
@@ -39,10 +37,10 @@ NXF_OPTS='-Xms1g -Xmx4g'
 
 The typical command for running the pipeline is as follows:
 ```bash
-nextflow run main.nf --reads '*_R{1,2}.fastq.gz' -profile 'singularity'
+nextflow run main.nf -genome 'hg38' -profile 'conda'
 ```
 
-This will launch the pipeline with the `singularity` configuration profile. See below for more information about profiles.
+This will launch the pipeline with the `conda` configuration profile. See below for more information about profiles.
 
 Note that the pipeline will create the following files in your working directory:
 
@@ -62,38 +60,33 @@ You can change the output director using the `--outDir/-w` options.
 Use this option to set the [Nextflow profiles](profiles.md). For example:
 
 ```bash
--profile singularity,cluster
+-profile path,cluster
 ```
 
-### `--reads`
-Use this to specify the location of your input FastQ files. For example:
+### `-genome`
+
+Use this to specify the genome annotation to download and process. For example :
 
 ```bash
---reads 'path/to/data/sample_*_{1,2}.fastq'
+-genome 'hg38'
 ```
 
-Please note the following requirements:
+The list of genomes (and their sources) is available in [`conf/genomes.conf`](../conf/genomes.config)
 
-1. The path must be enclosed in quotes
-2. The path must have at least one `*` wildcard character
-3. When using the pipeline with paired end data, the path must use `{1,2}` notation to specify read pairs
-
-If left unspecified, a default pattern is used: `data/*{1,2}.fastq.gz`
+The pipeline expects a link to a `fasta` file, and an annotation file (`gtf` or `gff`).  
+If your genome is not available in the config file, the options `--fasta`, `--gtf` or `--gff` can be used on command line.
 
 
-### `--samplePlan`
+## Other arguments
 
-Use this to specify a sample plan file instead of a regular expression to find fastq files. For example :
+### `--build`
 
-```bash
---samplePlan 'path/to/data/sample_plan.csv
-```
+Name of the genome build for output prefix. By default the build is extracted from the name of the fasta file.
 
-The sample plan is a csv file with the following information (and no header) :
+### `--indexes`
 
-```
-Sample ID | Sample Name | /path/to/R1/fastq/file | /path/to/R2/fastq/file (for paired-end only)
-```
+Specify which indexes you would like to generate (bwa,star,bowtie2,hisat2), as well as `none` or `all` (default).
+Several tools can be specify (comma separated).
 
 ## Nextflow profiles
 
@@ -110,12 +103,8 @@ For most of the steps in the pipeline, if the job exits with an error code of `1
 
 The pipeline is made with a few *skip* options that allow to skip optional steps in the workflow.
 The following options can be used:
-* `--skipFastqc`
-* `--skipMultiqc`
+* `--skipGtfProcessing`
 				
-### `--metadata`
-Specify a two-columns (tab-delimited) metadata file to diplay in the final Multiqc report.
-
 ### `--outDir`
 The output directory where the results will be saved.
 
@@ -152,6 +141,4 @@ Should be a string in the format integer-unit. eg. `--maxTime '2.h'`
 Use to set a top-limit for the default CPU requirement for each process.
 Should be a string in the format integer-unit. eg. `--maxCpus 1`
 
-### `--multiqcConfig`
-Specify a path to a custom MultiQC configuration file.
 
