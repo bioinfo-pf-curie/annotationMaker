@@ -41,7 +41,7 @@ nextflow run main.nf --fasta '*.fasta' --gtf '*.gtf' -profile conda
 
 Mandatory arguments:
   --genome [str]                Reference genome name and annotations to use
-  --genomeAnnotationPath [dir] Path to genome annotation folder
+  --genomeAnnotationPath [dir]  Path to genome annotation folder
   -profile [str]                Configuration profile to use. test / conda / toolsPath / singularity / cluster (see below)
  
 Optional arguments: If --genome is not specified
@@ -54,8 +54,9 @@ Optional arguments:
   --indexes [str]               List of indexes to build. Available: all,bwa,star,bowtie2,hisat2,none. Default: all
 		  
 Other options:
-  --outDir [dir]               The output directory where the results will be saved
-  -w/--work-dir [dir]          The temporary directory where intermediate data will be saved
+  --skipGtfProcessing [bool]    Skip the GTF file processing
+  --outDir [dir]                The output directory where the results will be saved
+  -w/--work-dir [dir]           The temporary directory where intermediate data will be saved
   -name [str]                   Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
 				  
 			  
@@ -116,7 +117,7 @@ Sample ID | Sample Name | Path R1 .fastq file | [Path R2 .fastq file]
 ### Full Documentation
 
 1. [Installation](docs/installation.md)
-2. [Reference genomes](docs/reference_genomes.md)
+2. [Reference genomes](docs/referenceGenomes.md)
 3. [Running the pipeline](docs/usage.md)
 4. [Output and how to interpret the results](docs/output.md)
 5. [Troubleshooting](docs/troubleshooting.md)
