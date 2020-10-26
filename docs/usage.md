@@ -37,7 +37,7 @@ NXF_OPTS='-Xms1g -Xmx4g'
 
 The typical command for running the pipeline is as follows:
 ```bash
-nextflow run main.nf -genome 'hg38' -profile 'conda'
+nextflow run main.nf --genome 'hg38' -profile 'conda'
 ```
 
 This will launch the pipeline with the `conda` configuration profile. See below for more information about profiles.
