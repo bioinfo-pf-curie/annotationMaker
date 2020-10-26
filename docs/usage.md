@@ -8,7 +8,7 @@
 * [Running the pipeline](#running-the-pipeline)
 * [Main arguments](#main-arguments)
     * [`-profile`](#-profile)
-    * [`-genome`](#-genome)
+    * [`--genome`](#-genome)
 * [Nextflow profiles](#nextflow-profiles)
 * [Job resources](#job-resources)
 * [Other command line parameters](#other-command-line-parameters)
@@ -63,7 +63,7 @@ Use this option to set the [Nextflow profiles](profiles.md). For example:
 -profile path,cluster
 ```
 
-### `-genome`
+### `--genome`
 
 Use this to specify the genome annotation to download and process. For example :
 
