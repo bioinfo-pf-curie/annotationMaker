@@ -18,12 +18,13 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 
 1. Process `.fasta` file and generate `.dict` and `.fai` files
 2. Generate chromosome size file
-3. Generate indexes for :
+3. Calculate the effective genome size as the sum of non 'N' base on the genome.
+4. Generate indexes for :
 - [`BWA`](http://bio-bwa.sourceforge.net/)
 - [`Bowtie2`](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) 
 - [`STAR`](https://github.com/alexdobin/STAR)
 - [`hisat2`](http://ccb.jhu.edu/software/hisat2/index.shtml)
-4. Process GTF annotation file for downstream analysis tools
+5. Process GTF/GFF annotation file for downstream analysis tools
 
 ### Quick help
 
@@ -31,7 +32,7 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 N E X T F L O W  ~  version 20.01.0
 Launching `main.nf` [furious_volta] - revision: ca21e76c70
 ======================================================================
-annotationMaker v1.0.1dev
+annotationMaker v1.1.0dev
 ======================================================================
 
 Usage:
@@ -40,31 +41,34 @@ nextflow run main.nf --fasta '*.fasta' --gtf '*.gtf' -profile conda
 
 Mandatory arguments:
   --genome [str]                Reference genome name and annotations to use
+  --genomeAnnotationPath [dir] Path to genome annotation folder
   -profile [str]                Configuration profile to use. test / conda / toolsPath / singularity / cluster (see below)
-  
+ 
 Optional arguments: If --genome is not specified
   --fasta [file]                Path to input data (must be surrounded with quotes)
   --gtf [file]                  Path to GTF file with gene annotation
+  --gff [file]                  Path to GFF file with gene annotation
 	  
 Optional arguments:
-  --build                       Build name to use for genome index
-  --indexes                     List of indexes to build. Available: all,bwa,star,bowtie2,hisat2. Default: all
+  --build [str]                 Build name to use for genome index
+  --indexes [str]               List of indexes to build. Available: all,bwa,star,bowtie2,hisat2,none. Default: all
 		  
 Other options:
-  --outdir [file]               The output directory where the results will be saved
-  -w/--work-dir [file]          The temporary directory where intermediate data will be saved
-  --email [str]                 Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits
+  --outDir [dir]               The output directory where the results will be saved
+  -w/--work-dir [dir]          The temporary directory where intermediate data will be saved
   -name [str]                   Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
 				  
 			  
 =======================================================
 Available Profiles
-				  
-  -profile test                Set up the test dataset
-  -profile conda               Build a new conda environment before running the pipeline
-  -profile toolsPath           Use the paths defined in configuration for each tool
-  -profile singularity         Use the Singularity images for each process
-  -profile cluster             Run the workflow on the cluster, instead of locally							
+  -profile test                    Run the test dataset
+  -profile conda                   Build a new conda environment before running the pipeline. Use `--condaCacheDir` to define the conda cache path
+  -profile multiconda              Build a new conda environment per process before running the pipeline. Use `--condaCacheDir` to define the conda cache path
+  -profile path                    Use the installation path defined for all tools. Use `--globalPath` to define the insallation path
+  -profile multipath               Use the installation paths defined for each tool. Use `--globalPath` to define the insallation path
+  -profile docker                  Use the Docker images for each process
+  -profile singularity             Use the Singularity images for each process. Use `--singularityPath` to define the insallation path
+  -profile cluster                 Run the workflow on the cluster, instead of locally
 ```
 
 ### Quick run
@@ -82,7 +86,7 @@ nextflow run main.nf -profile test,conda
 #### Run the pipeline on a computational cluster
 
 ```
-echo "nextflow run main.nf --genome 'hg19' --outdir MY_OUTPUT_DIR -profile singularity,cluster" | qsub -N makeAnnot"
+echo "nextflow run main.nf --genome 'hg19' --outDir MY_OUTPUT_DIR -profile singularity,cluster" | qsub -N makeAnnot"
 
 ```
 
@@ -97,7 +101,7 @@ Here are a few examples of how to set the profile option.
 
 ```
 ## Run the pipeline locally, using the paths defined in the configuration for each tool (see conf.tool-path.config)
--profile toolsPath
+-profile path --globalPath 'PATH_TO_BINARY'
 
 ## Run the pipeline on the cluster, using the Singularity containers
 -profile cluster,singularity
