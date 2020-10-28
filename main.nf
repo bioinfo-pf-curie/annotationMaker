@@ -663,7 +663,7 @@ workflow.onComplete {
     def report_html = html_template.toString()
 
     // Write summary e-mail HTML to a file
-    def output_d = new File( "${params.outDir}/pipelineInfo/" )
+    def output_d = new File( "${params.summaryDir}/" )
     if( !output_d.exists() ) {
       output_d.mkdirs()
     }
