@@ -456,10 +456,10 @@ process makeStarIndex {
 
   script:
   """
-  odir=\$(STAR --version | cut -d_ -f1,2)
-  mkdir -p \${odir}
+  odir=\$(STAR --version | cut -d_ -f2)
+  mkdir -p STAR_\${odir}
   chrBinNbits=\$(awk -F"\t" '{s+=\$2;l+=1}END{p=log(s/l)/log(2); printf("%.0f", (p<18 ? p:18))}' ${chrSize})
-  STAR --runMode genomeGenerate --limitGenomeGenerateRAM 33524399488 --genomeChrBinNbits \${chrBinNbits} --runThreadN ${task.cpus} --genomeDir \${odir} --genomeFastaFiles $fasta
+  STAR --runMode genomeGenerate --limitGenomeGenerateRAM 33524399488 --genomeChrBinNbits \${chrBinNbits} --runThreadN ${task.cpus} --genomeDir STAR_\${odir} --genomeFastaFiles $fasta
   """
 }
 

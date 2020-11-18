@@ -7,18 +7,17 @@ channels:
   - defaults
 dependencies:
   - bioconda::samtools=1.11
-  - bioconda::star=2.6.1b
   - bioconda::star=2.7.6a
-  - bioconda::hisat2=2.1.0
-  - bioconda::bowtie2=2.3.5
+  - bioconda::hisat2=2.2.1
+  - bioconda::bowtie2=2.4.2
   - bioconda::bwa=0.7.17
-  - bioconda::picard=2.23.0
+  - bioconda::picard=2.23.8
   - bioconda::bedtools=2.29.2
   - bioconda::ucsc-gtftogenepred=377
   - bioconda::ucsc-genepredtobed=377
   - bioconda::ucsc-gff3togenepred=377
   - bioconda::ucsc-fasize=377
   - bioconda::gffread=0.12.1
-  - conda-forge::r-base=3.5.1
-  - bioconda::bioconductor-genomicfeatures
-  - bioconda::bioconductor-rtracklayer
+  - conda-forge::r-base=4.0.3
+  - bioconda::bioconductor-genomicfeatures=1.40.0
+  - bioconda::bioconductor-rtracklayer=1.48.0
