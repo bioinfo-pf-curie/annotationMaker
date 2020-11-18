@@ -1,4 +1,10 @@
-***********************************
+**********************************
+version-1.2.1
+
+SIGNIFICANT USER-VISIBLE CHANGES
+  - Update annotation build
+
+**********************************
 version-1.2.0
 
 NEW FEATURES
@@ -13,7 +19,7 @@ SIGNIFICANT USER-VISIBLE CHANGES
   - Output STAR indexes in a folder with version number
   - Use new Newflow template
 
-***********************************
+**********************************
 version-1.1.0
 
 NEW FEATURES
@@ -22,7 +28,7 @@ NEW FEATURES
   - Add gtf parser
   - Allow URL download through genome.config
 
-***********************************
+**********************************
 vrsion-1.0.0
 
 NEW FEATURES
