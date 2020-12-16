@@ -115,15 +115,23 @@ if (!checkParameterList(aligners, alignersList)) exit 1, 'Unknown Aligner(s), se
 if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
    exit 1, "The provided genome '${params.genome}' is not available in the genomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
 }
-
+wasFastaUrl=false
 if (params.genome){
-  fastaURL = params.genome ? params.genomes[ params.genome ].fasta ?: false : false
-  if (fastaURL){
-    Channel.from(fastaURL)
-      .ifEmpty { exit 1, "Reference Genome not found: ${fastaURL}" }
-      .set { chFastaLink }
+  fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : false
+  if (fasta){
+    if (fasta.startsWith("http") || fasta.startsWith("ftp")){
+      wasFastaUrl=true
+      Channel.from(fasta)
+        .ifEmpty { exit 1, "Reference Genome not found: ${fasta}" }
+        .set { chFastaLink }
+    }else{
+      Channel.fromPath(fasta)
+        .ifEmpty { exit 1, "Reference Genome not found: ${fasta}" }
+        .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2 }
+      chFastaLink = Channel.empty()
+    }
   }else{
-    exit 1, "Fasta file not found for ${params.genome} : ${fastaURL}"
+    exit 1, "Fasta file not found for ${params.genome} : ${fasta}"
   }
 }else if (params.fasta){
   Channel.fromPath("${params.fasta}")
@@ -133,26 +141,46 @@ if (params.genome){
 }
 
 // GTF
+wasGtfUrl=false
+wasGffUrl=false
 if (params.genome){
-  params.gtf = params.genome ? params.genomes[ params.genome ].gtf ?: false : false
-  params.gff = params.genome ? params.genomes[ params.genome ].gff ?: false : false
-
-  if (params.gtf && params.gff){
-    log.info "Both GTF and GFF have been provided: Using GTF as priority."
+  gtf = params.genome ? params.genomes[ params.genome ].gtf ?: false : false
+  gff = params.genome ? params.genomes[ params.genome ].gff ?: false : false
+  
+  if ( gtf && gff ){
+    log.info "Both GTF and GFF have been provided: Using GTF."
   }
-  if (params.gtf){
-    Channel.from(params.gtf)
-      .ifEmpty { exit 1, "Reference annotation not found: ${params.gtf}" }
-      .set { chGtfLink }
-    chGffLink = Channel.empty()
-  }else if (params.gff){
-    Channel.from(params.gff)
-      .ifEmpty { exit 1, "Reference annotation not found: ${params.gff}" }
-      .set { chGffLink }
-    chGtfLink = Channel.empty()
+  if ( gtf ){
+    if (gtf.startsWith("http") || gtf.startsWith("ftp")){
+      wasGtfUrl=true
+      Channel.from(gtf)
+        .ifEmpty { exit 1, "Reference annotation not found: ${gtf}" }
+        .set { chGtfLink }
+      chGffLink = Channel.empty()
+    }else{
+      Channel
+        .fromPath(gtf)
+        .ifEmpty { exit 1, "GTF annotation file not found: ${gtf}" }
+        .into { chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene }
+      Channel.empty().into{ chGtfLink; chGffLink }
+    }
+  }else if (gff){
+    if ( gff.startsWith("http") || gff.startsWith("ftp")){
+      wasGffUrl=true
+      Channel.from(gff)
+        .ifEmpty { exit 1, "Reference annotation not found: ${gff}" }
+        .set { chGffLink }
+      chGtfLink = Channel.empty()
+    }else{
+      Channel
+        .fromPath(gff)
+        .ifEmpty { exit 1, "GFF annotation file not found: ${gff}" }
+        .set { chGff }
+      Channel.empty().into{ chGtfLink; chGffLink }
+    }
   }else{
     log.warn("No GTF/GFF information detected for ${params.genome}")
-    Channel.empty().into{ chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink }
+    Channel.empty().into{ chGff; chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink }
   }
 }else if (params.gtf){
   Channel
@@ -164,7 +192,7 @@ if (params.genome){
   Channel
     .fromPath(params.gff)
     .ifEmpty { exit 1, "GFF annotation file not found: ${params.gtf}" }
-    .into { chGff }
+    .set { chGff }
   Channel.empty().into{ chGtfLink; chGffLink }
 }else{
   Channel.empty().into{ chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink }
@@ -194,16 +222,16 @@ Annotation Maker workflow v${workflow.manifest.version}
 def summary = [:]
 summary['Command Line'] = workflow.commandLine
 if (params.genome){
-summary['Fasta']          = fastaURL
+summary['Fasta']          = fasta
 }else{
 summary['Fasta']          = params.fasta 
 }
 summary['Build']          = build
-if (params.gtf){
-summary['Gtf']            = params.gtf
+if (params.gtf || gtf ){
+summary['Gtf']            = params.gtf ?: gtf
 }
-if (params.gff){
-summary['Gff']            = params.gff
+if (params.gff || gff ){
+summary['Gff']            = params.gff ?: gff
 }
 summary['Indexes']        = aligners
 summary['Max Memory']     = params.maxMemory
@@ -286,21 +314,22 @@ process getAnnotation {
   }
 }
 
-if (params.genome){
+if (wasFastaUrl){
   chFastaURL.into{chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2}
-  if (params.gtf){
-    chAnnotURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf; chGtfBed12; chGtfGene}
-  }else if (params.gff){
-    chAnnotURL.set{chGff}
-  }
 }
+if (wasGtfUrl){
+  chAnnotURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf; chGtfBed12; chGtfGene}
+}else if (wasGffUrl){
+  chAnnotURL.set{chGff}
+}
+
 
 
 /*
  * GTF/GFF processing
  */
 
-if (params.gff && !params.gtf) {
+if ((params.gff || gff)  && (!params.gtf && !gtf)){
   process convertGFFtoGTF {
     label 'gffread'
     label 'lowCpu'
@@ -324,6 +353,8 @@ if (params.gff && !params.gtf) {
 /*
  * FASTA PROCESSING
  */
+
+chFasta = chFasta.dump(tag:'input')
 
 process indexFasta {
   label 'samtools'

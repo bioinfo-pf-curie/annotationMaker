@@ -1,3 +1,8 @@
+version-1.2.2
+
+BUG FIXES
+  - Fix bug when paths are provided instead of urls
+
 **********************************
 version-1.2.1
 
