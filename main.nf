@@ -263,7 +263,7 @@ process getFasta {
   val(url) from chFastaLink
 
   output:
-  file("*.fa") into chFastaURL
+  file("*.{fa,fasta}") into chFastaURL
 
   script:
   if (url.endsWith(".tar.gz")){
