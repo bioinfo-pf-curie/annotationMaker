@@ -45,7 +45,7 @@ def helpMessage() {
     Optional arguments: If --genome is not specified
       --fasta [file]                Path to input data (must be surrounded with quotes)
       --gtf [file]                  Path to GTF file with gene annotation
-      --gff [file]                  Path to GFF file with gene annotation    
+      --gff [file]                  Path to GFF file with gene annotation
 
     Optional arguments:
       --build [str]                 Build name to use for genome index
@@ -146,7 +146,7 @@ wasGffUrl=false
 if (params.genome){
   gtf = params.genome ? params.genomes[ params.genome ].gtf ?: false : false
   gff = params.genome ? params.genomes[ params.genome ].gff ?: false : false
-  
+
   if ( gtf && gff ){
     log.info "Both GTF and GFF have been provided: Using GTF."
   }
@@ -161,7 +161,7 @@ if (params.genome){
       Channel
         .fromPath(gtf)
         .ifEmpty { exit 1, "GTF annotation file not found: ${gtf}" }
-        .into { chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene }
+        .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene }
       Channel.empty().into{ chGtfLink; chGffLink }
     }
   }else if (gff){
@@ -186,7 +186,7 @@ if (params.genome){
   Channel
     .fromPath(params.gtf)
     .ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
-    .into { chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene }
+    .into { chGtf, chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene }
   Channel.empty().into{ chGtfLink; chGffLink }
 }else if (params.gff){
   Channel
@@ -224,7 +224,7 @@ summary['Command Line'] = workflow.commandLine
 if (params.genome){
 summary['Fasta']          = fasta
 }else{
-summary['Fasta']          = params.fasta 
+summary['Fasta']          = params.fasta
 }
 summary['Build']          = build
 if (params.gtf || gtf ){
@@ -269,7 +269,7 @@ process getFasta {
   if (url.endsWith(".tar.gz")){
   """
   wget --no-check-certificate ${url} -O chromFa.tar.gz
-  
+
   mkdir ./tmp
   tar zxvf chromFa.tar.gz -C ./tmp
   for i in \$(ls tmp/*.fa | grep -v "_" | sort -V); do cat \$i >> ${build}.fa; done
@@ -304,12 +304,12 @@ process getAnnotation {
   script:
   if (url.endsWith(".gz")){
   """
-  wget --no-check-certificate ${url} 
+  wget --no-check-certificate ${url}
   gunzip *.gz
   """
   }else{
   """
-  wget --no-check-certificate ${url} 
+  wget --no-check-certificate ${url}
   """
   }
 }
@@ -368,7 +368,7 @@ process indexFasta {
   file(fasta) from chFasta
 
   output:
-  set file(fasta), file("*.fai") into chFastaDict, chFastaSize, chFastaEffgsize 
+  set file(fasta), file("*.fai") into chFastaDict, chFastaSize, chFastaEffgsize
 
   script:
   """
@@ -440,7 +440,7 @@ process effectiveGenomeSize {
 
 /*
  * PREPROCESSING - Build Index
- */ 
+ */
 
 process makeBwaIndex {
   label 'bwamem'
@@ -450,9 +450,9 @@ process makeBwaIndex {
   publishDir "${params.outDir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
-  when: 
+  when:
   'bwa' in aligners
-   
+
   input:
   file(fasta) from chFastaBwa
 
@@ -497,7 +497,7 @@ process makeStarIndex {
 process makeBowtie2Index {
   label 'bowtie2'
   label 'medCpu'
-  label 'highMem' 
+  label 'highMem'
 
   publishDir "${params.outDir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
@@ -633,7 +633,7 @@ process gtf2genes {
   label 'lowCpu'
   label 'medMem'
 
-  publishDir "${params.outDir}/gtf", mode: 'copy', 
+  publishDir "${params.outDir}/gtf", mode: 'copy',
 
   when:
   !params.skipGtfProcessing
@@ -649,7 +649,7 @@ process gtf2genes {
   extractGeneFromGTF.r ${gtf} ${gtf.baseName}_gene.bed
   sort -k1,1V -k2,2n ${gtf.baseName}_gene.bed > ${gtf.baseName}_gene_sorted.bed
   mv ${gtf.baseName}_gene_sorted.bed ${gtf.baseName}_gene.bed
-  """  
+  """
 }
 
 
@@ -687,7 +687,7 @@ workflow.onComplete {
     def tf = new File("$baseDir/assets/onCompleteTemplate.txt")
     def txt_template = engine.createTemplate(tf).make(report_fields)
     def report_txt = txt_template.toString()
-    
+
     // Render the HTML template
     def hf = new File("$baseDir/assets/onCompleteTemplate.html")
     def html_template = engine.createTemplate(hf).make(report_fields)
@@ -721,5 +721,5 @@ workflow.onComplete {
       log.info "[annotationMaker] Pipeline Complete"
     }else{
       log.info "[annotationMaker] FAILED: $workflow.runName"
-    } 
+    }
 }
