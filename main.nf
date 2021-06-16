@@ -186,7 +186,7 @@ if (params.genome){
   Channel
     .fromPath(params.gtf)
     .ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
-    .into { chGtf, chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene }
+    .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene }
   Channel.empty().into{ chGtfLink; chGffLink }
 }else if (params.gff){
   Channel
