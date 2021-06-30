@@ -391,9 +391,8 @@ process makeDict {
   file("*.dict") into chDict
 
   script:
-  pfix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
   """
-  picard CreateSequenceDictionary REFERENCE=${fasta} OUTPUT=${pfix}.dict
+  picard CreateSequenceDictionary REFERENCE=${fasta} OUTPUT=${fasta}.dict
   """
 }
 
