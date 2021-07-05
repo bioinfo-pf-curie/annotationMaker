@@ -49,7 +49,7 @@ def helpMessage() {
 
     Optional arguments:
       --build [str]                 Build name to use for genome index
-      --indexes [file]              List of indexes to build. Available: all,bwa,star,bowtie2,hisat2,none. Default: all
+      --indexes [file]              List of indexes to build. Available: all,bwa,star,bowtie2,hisat2,cellranger,kallisto,salmon,none. Default: all
 
     Other options:
       --skipGtfProcessing [bool]    Skip the GTF file processing
@@ -88,7 +88,12 @@ def defineAligners() {
         'hisat2',
         'cellranger',
         'kallisto',
+	'salmon',
         'none']
+}
+
+if (params.starVersion != "2.7.8a" && params.starVersion != "2.7.6a"){
+  exit 1, "The provided STAR version is not available. Use either 2.7.6a or 2.7.8a"
 }
 
 // Compare each parameter with a list of parameters
@@ -129,7 +134,7 @@ if (params.genome){
     }else{
       Channel.fromPath(fasta)
         .ifEmpty { exit 1, "Reference Genome not found: ${fasta}" }
-        .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaKallisto }
+        .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaKallisto; chFastaSalmon }
       chFastaLink = Channel.empty()
     }
   }else{
@@ -138,8 +143,34 @@ if (params.genome){
 }else if (params.fasta){
   Channel.fromPath("${params.fasta}")
     .ifEmpty { exit 1, "Reference Genome not found: ${params.fasta}" }
-    .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaKallisto }
+    .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaKallisto; chFastaSalmon }
   chFastaLink = Channel.empty()
+}
+
+// Transcriptome
+wasTrsUrl=true
+if (params.genome){
+  transcriptome = params.genome ? params.genomes[ params.genome ].transcripts ?: false : false
+  if (transcriptome){
+    if (transcriptome.startsWith("http") || transcriptome.startsWith("ftp")){
+      Channel.from(transcriptome)
+        .ifEmpty { exit 1, "Reference annotation not found: ${transcriptome}" }
+        .set { chTrsLink }
+    }else{
+      Channel
+        .fromPath(transcriptome)
+        .ifEmpty { exit 1, "Reference annotation file not found: ${transcriptome}" }
+        .set { chTranscriptsSalmon }
+    }
+  }else{
+    log.warn("No transcripts file detected for ${params.genome}") 
+    Channel.empty().into{ chTrsLink; chTranscriptsSalmon }
+  }
+}else if (params.transcriptome){
+  Channel.fromPath("${params.transcriptome}")
+    .ifEmpty { exit 1, "Reference Genome not found: ${params.transcriptome}" }
+    .set { chTranscriptsSalmon }
+  chTrsLink = Channel.empty()
 }
 
 // GTF
@@ -156,7 +187,7 @@ if (params.genome){
     if (gtf.startsWith("http") || gtf.startsWith("ftp")){
       wasGtfUrl=true
       Channel.from(gtf)
-        .ifEmpty { exit 1, "Reference annotation not found: ${gtf}" }
+        .ifEmpty { exit 1, "GTF annotation not found: ${gtf}" }
         .set { chGtfLink }
       chGffLink = Channel.empty()
     }else{
@@ -225,8 +256,10 @@ def summary = [:]
 summary['Command Line'] = workflow.commandLine
 if (params.genome){
 summary['Fasta']          = fasta
+summary['Transcripts']    = transcriptome
 }else{
 summary['Fasta']          = params.fasta
+summary['Transcripts']    = params.transcriptome
 }
 summary['Build']          = build
 if (params.gtf || gtf ){
@@ -290,6 +323,33 @@ process getFasta {
   }
 }
 
+process getTranscriptome {
+  label 'unix'
+  label 'lowCpu'
+  label 'lowMem'
+
+  publishDir "${params.outDir}/genome", mode: 'copy',
+    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
+
+  input:
+  val(url) from chTrsLink
+
+  output:
+  file("*.{fa,fasta}") into chTrsURL
+
+  script:
+  if (url.endsWith(".gz")){
+  """
+  wget --no-check-certificate ${url}
+  gunzip *.gz
+  """
+  }else{
+  """
+  wget --no-check-certificate ${url}
+  """
+  }
+}
+
 process getAnnotation {
   label 'unix'
   label 'lowCpu'
@@ -317,7 +377,10 @@ process getAnnotation {
 }
 
 if (wasFastaUrl){
-  chFastaURL.into{chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaKallisto}
+  chFastaURL.into{chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaKallisto; chFastaSalmon}
+}
+if (wasTrsUrl){
+  chTrsURL.set{chTranscriptsSalmon}
 }
 if (wasGtfUrl){
   chAnnotURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf; chGtfBed12; chGtfGene; chGtfCellranger; chGtfBustools}
@@ -350,39 +413,39 @@ if ((params.gff || gff)  && (!params.gtf && !gtf)){
     gffread $gff --keep-exon-attrs -F -T -o ${gff.baseName}.gtf
     """
   }
-}
 
-process MakeBustoolAnnot {
-  label 'bustools'
-  label 'medCpu'
-  label 'medMem'
+  process makeBustoolAnnot {
+    label 'bustools'
+    label 'medCpu'
+    label 'medMem'
 
-  publishDir "${params.outDir}/gtf/", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
+    publishDir "${params.outDir}/gtf/", mode: 'copy',
+      saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
-  when:
-  'kallisto' in aligners
+    when:
+    'kallisto' in aligners
 
-  input:
-  file gtf from chGtfBustools
+    input:
+    file gtf from chGtfBustools
 
-  output:
-  set("${gtf.baseName}_txp2gene.tsv", "${gtf.baseName}_gene_trad.csv") into chBustoolsAnnot
+    output:
+    set("${gtf.baseName}_txp2gene.tsv", "${gtf.baseName}_gene_trad.csv") into chBustoolsAnnot
 
-  script:
-  """
-  cat $gtf | grep -v "^#" | grep "gene_id" | grep "transcript_id" | awk 'BEGIN{FS="\t"}{print \$9}' | awk 'BEGIN{FS="gene_id "}{print \$2}' | awk 'BEGIN{FS=";"}{print \$1}' | sed 's/"//g' > gene.tmp
-  cat $gtf | grep -v "^#" | grep "gene_id" | grep "transcript_id" | awk 'BEGIN{FS="\t"}{print \$9}' | awk 'BEGIN{FS="transcript_id "}{print \$2}' | awk 'BEGIN{FS=";"}{print \$1}' | sed 's/"//g' > txp.tmp
-  paste txp.tmp gene.tmp | sort | uniq > ${gtf.baseName}_txp2gene.tsv
-  """
+    script:
+    """
+    cat $gtf | grep -v "^#" | grep "gene_id" | grep "transcript_id" | awk 'BEGIN{FS="\t"}{print \$9}' | \
+    awk 'BEGIN{FS="gene_id "}{print \$2}' | awk 'BEGIN{FS=";"}{print \$1}' | sed 's/"//g' > gene.tmp
+    cat $gtf | grep -v "^#" | grep "gene_id" | grep "transcript_id" | awk 'BEGIN{FS="\t"}{print \$9}' | \
+    awk 'BEGIN{FS="transcript_id "}{print \$2}' | awk 'BEGIN{FS=";"}{print \$1}' | sed 's/"//g' > txp.tmp
+    paste txp.tmp gene.tmp | sort | uniq > ${gtf.baseName}_txp2gene.tsv
+    """
+  }
 }
 
 
 /*
  * FASTA PROCESSING
  */
-
-chFasta = chFasta.dump(tag:'input')
 
 process indexFasta {
   label 'samtools'
@@ -547,7 +610,6 @@ process makeBowtie2Index {
   """
 }
 
-
 process makeHisat2Splicesites {
   label 'hisat2'
   label 'lowCpu'
@@ -645,7 +707,7 @@ process makeCellRangerIndex {
   file filteredGtf from chFilteredGtfCellranger
 
   output:
-  path("cellranger") into chCellrangerIdx
+  file("cellranger") into chCellrangerIdx
 
   script:
   (full, mem) = (task.memory =~ /(\d+)\s*[a-z]*/)[0]
@@ -658,7 +720,7 @@ process makeCellRangerIndex {
   """
 }
 
-process MakeKallistoIndex {
+process makeKallistoIndex {
   label 'kallisto'
   label 'medCpu'
   label 'medMem'
@@ -673,12 +735,46 @@ process MakeKallistoIndex {
   file fasta from chFastaKallisto
 
   output:
-  path("kallisto") into chKallistoIdx
+  file("kallisto") into chKallistoIdx
 
   script:
   """
   mkdir -p kallisto
   kallisto index -i kallisto/transcriptome.idx $fasta
+  """
+}
+
+
+process makeSalmonIndex {
+  label 'salmon'
+  label 'medCpu'
+  label 'medMem'
+
+  publishDir "${params.outDir}/indexes/", mode: 'copy',
+    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
+
+  when:
+  'salmon' in aligners
+
+  input:
+  file genomeFasta from chFastaSalmon
+  file transcrpitsFasta from chTranscriptsSalmon
+
+  output:
+  file("salmon/") into chSalmonIdx
+
+  script:
+  """
+  grep "^>" ${genomeFasta} | cut -d " " -f 1 > decoys.txt
+  sed -i.bak -e 's/>//g' decoys.txt
+  cat ${transcrpitsFasta} ${genomeFasta} > gentrome.fa
+
+  salmon index \
+    -t gentrome.fa \
+    --decoy decoys.txt \
+    -i salmon \
+    -p ${task.cpus} \
+    --gencode
   """
 }
 

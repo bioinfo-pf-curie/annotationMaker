@@ -5,3 +5,4 @@ channels:
   - defaults
 dependencies:
   - bioconda::hisat2=2.2.1=h1b792b2_3
+  - conda-forge::tbb=2020.2=hc9558a2_0
