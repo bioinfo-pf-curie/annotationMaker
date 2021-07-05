@@ -1,7 +1,14 @@
-version-1.2.2
+**********************************
+version-1.2.3
+
+NEW FEATURES
+  - Create cellRanger indexes
 
 SIGNIFICANT USER-VISIBLE CHANGES
-  - Change dict name as fasta.dict
+  - Update conda to deal with multiple STAR version
+
+**********************************
+version-1.2.2
 
 BUG FIXES
   - Fix bug when paths are provided instead of urls

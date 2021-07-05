@@ -419,8 +419,9 @@ process makeDict {
   file("*.dict") into chDict
 
   script:
+  pfix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
   """
-  picard CreateSequenceDictionary REFERENCE=${fasta} OUTPUT=${fasta}.dict
+  picard CreateSequenceDictionary REFERENCE=${fasta} OUTPUT=${pfix}.dict
   """
 }
 
@@ -599,13 +600,10 @@ process makeHisat2Index {
   """
 }
 
-process CellRangerFilterGtf {
+process cellRangerFilterGtf {
   label 'unix'
   label 'medCpu'
   label 'medMem'
-
-  // publishDir "${params.outDir}/indexes/", mode: 'copy',
-  //   saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   when:
   'cellranger' in aligners
@@ -618,11 +616,20 @@ process CellRangerFilterGtf {
 
   script:
   """
-  /bioinfo/local/build/Centos/cellranger/cellranger-3.1.0/cellranger mkgtf $gtf cellranger_filtered.gtf --attribute=gene_biotype:protein_coding --attribute=gene_biotype:lincRNA --attribute=gene_biotype:antisense --attribute=gene_biotype:IG_LV_gene --attribute=gene_biotype:IG_V_gene --attribute=gene_biotype:IG_V_pseudogene --attribute=gene_biotype:IG_D_gene --attribute=gene_biotype:IG_J_gene --attribute=gene_biotype:IG_J_pseudogene --attribute=gene_biotype:IG_C_gene --attribute=gene_biotype:IG_C_pseudogene --attribute=gene_biotype:TR_V_gene --attribute=gene_biotype:TR_V_pseudogene --attribute=gene_biotype:TR_D_gene --attribute=gene_biotype:TR_J_gene --attribute=gene_biotype:TR_J_pseudogene --attribute=gene_biotype:TR_C_gene
+  cellranger mkgtf $gtf cellranger_filtered.gtf \
+    --attribute=gene_biotype:protein_coding --attribute=gene_biotype:lincRNA \
+    --attribute=gene_biotype:antisense --attribute=gene_biotype:IG_LV_gene \
+    --attribute=gene_biotype:IG_V_gene --attribute=gene_biotype:IG_V_pseudogene \
+    --attribute=gene_biotype:IG_D_gene --attribute=gene_biotype:IG_J_gene \
+    --attribute=gene_biotype:IG_J_pseudogene --attribute=gene_biotype:IG_C_gene \
+    --attribute=gene_biotype:IG_C_pseudogene --attribute=gene_biotype:TR_V_gene \
+    --attribute=gene_biotype:TR_V_pseudogene --attribute=gene_biotype:TR_D_gene \
+    --attribute=gene_biotype:TR_J_gene --attribute=gene_biotype:TR_J_pseudogene \
+    --attribute=gene_biotype:TR_C_gene
   """
 }
 
-process MakeCellRangerIndex {
+process makeCellRangerIndex {
   label 'unix'
   label 'highCpu'
   label 'highMem'
@@ -641,10 +648,13 @@ process MakeCellRangerIndex {
   path("cellranger") into chCellrangerIdx
 
   script:
-  // gtfFiltered = gtf.replaceFirst(".gtf", ".filtered.gtf")
   (full, mem) = (task.memory =~ /(\d+)\s*[a-z]*/)[0]
   """
-  /bioinfo/local/build/Centos/cellranger/cellranger-3.1.0/cellranger mkref --genome=cellranger --fasta=$fasta --genes=$filteredGtf --nthreads ${task.cpus} --memgb ${mem} --ref-version ${build}
+  cellranger mkref \
+    --genome=cellranger \
+    --fasta=$fasta \
+    --genes=$filteredGtf \
+    --nthreads ${task.cpus} --memgb ${mem} --ref-version ${build}
   """
 }
 
@@ -671,7 +681,6 @@ process MakeKallistoIndex {
   kallisto index -i kallisto/transcriptome.idx $fasta
   """
 }
-
 
 /***********************
  * GTF Annotation

@@ -6,20 +6,21 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - bioconda::samtools=1.11
-  - bioconda::star=2.7.6a
-  - bioconda::hisat2=2.2.1
-  - bioconda::bowtie2=2.4.2
-  - bioconda::bwa=0.7.17
-  - bioconda::picard=2.23.8
-  - bioconda::bedtools=2.29.2
-  - bioconda::ucsc-gtftogenepred=377
-  - bioconda::ucsc-genepredtobed=377
-  - bioconda::ucsc-gff3togenepred=377
-  - bioconda::ucsc-fasize=377
-  - bioconda::gffread=0.12.1
-  - conda-forge::r-base=4.0.3
-  - bioconda::bioconductor-genomicfeatures=1.40.0
-  - bioconda::bioconductor-rtracklayer=1.48.0
+<<<<<<< HEAD
+  - bioconda::samtools=1.10=h2e538c0_3
+  - bioconda::star=2.7.6a=0
+  - bioconda::hisat2=2.2.1=h1b792b2_3
+  - bioconda::bowtie2=2.4.2=py37h8270d21_1
+  - bioconda::bwa=0.7.17=hed695b0_7
+  - bioconda::picard=2.25.3=hdfd78af_0
+  - bioconda::bedtools=2.29.2=hc088bd4_0
+  - bioconda::ucsc-gtftogenepred=377=h446ed27_3
+  - bioconda::ucsc-genepredtobed=377=h446ed27_3
+  - bioconda::ucsc-gff3togenepred=377=h446ed27_1
+  - bioconda::ucsc-fasize=377=h446ed27_1
+  - bioconda::gffread=0.12.1=h8b12597_0
+  - conda-forge::r-base=4.0.3=hc603457_2
+  - bioconda::bioconductor-genomicfeatures=1.40.0=r40_0
+  - bioconda::bioconductor-rtracklayer=1.48.0=r40h037d062_0
   - bioconda::kallisto=0.46.2
   - bioconda::bustools=0.40.0

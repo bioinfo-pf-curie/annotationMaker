@@ -1,6 +1,6 @@
-name: picard
+name: picard-2.25.3
 channels:
   - bioconda
 dependencies:
-  - bioconda::picard=2.23.0
-  - bioconda::samtools=1.9
+  - bioconda::picard=2.25.3=hdfd78af_0
+  - bioconda::samtools=1.10=h2e538c0_3

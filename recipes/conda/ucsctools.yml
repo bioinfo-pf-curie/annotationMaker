@@ -1,8 +1,10 @@
-name: ucsctools
+name: ucsctools-377
 channels:
   - bioconda
+  - conda-forge
+  - defaults
 dependencies:
-  - bioconda::ucsc-gtftogenepred=377
-  - bioconda::ucsc-genepredtobed=377
-  - bioconda::ucsc-gff3togenepred=377
-  - bioconda::ucsc-fasize=377
+  - bioconda::ucsc-gtftogenepred=377=h446ed27_3
+  - bioconda::ucsc-genepredtobed=377=h446ed27_3
+  - bioconda::ucsc-gff3togenepred=377=h446ed27_1
+  - bioconda::ucsc-fasize=377=h446ed27_1
