@@ -1,5 +1,7 @@
-name: hisat2
+name: hisat2-2.2.1
 channels:
   - bioconda
+  - conda-forge
+  - defaults
 dependencies:
-  - bioconda::hisat2=2.2.1
+  - bioconda::hisat2=2.2.1=h1b792b2_3
