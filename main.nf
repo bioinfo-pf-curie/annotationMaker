@@ -86,6 +86,7 @@ def defineAligners() {
         'star',
         'bowtie2',
         'hisat2',
+        'cellranger',
         'none']
 }
 
@@ -127,7 +128,7 @@ if (params.genome){
     }else{
       Channel.fromPath(fasta)
         .ifEmpty { exit 1, "Reference Genome not found: ${fasta}" }
-        .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2 }
+        .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger }
       chFastaLink = Channel.empty()
     }
   }else{
@@ -136,7 +137,7 @@ if (params.genome){
 }else if (params.fasta){
   Channel.fromPath("${params.fasta}")
     .ifEmpty { exit 1, "Reference Genome not found: ${params.fasta}" }
-    .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2 }
+    .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger }
   chFastaLink = Channel.empty()
 }
 
@@ -161,7 +162,7 @@ if (params.genome){
       Channel
         .fromPath(gtf)
         .ifEmpty { exit 1, "GTF annotation file not found: ${gtf}" }
-        .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene }
+        .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene; chGtfCellranger }
       Channel.empty().into{ chGtfLink; chGffLink }
     }
   }else if (gff){
@@ -180,13 +181,13 @@ if (params.genome){
     }
   }else{
     log.warn("No GTF/GFF information detected for ${params.genome}")
-    Channel.empty().into{ chGff; chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink }
+    Channel.empty().into{ chGff; chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink; chGtfCellranger }
   }
 }else if (params.gtf){
   Channel
     .fromPath(params.gtf)
     .ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
-    .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene }
+    .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene; chGtfCellranger }
   Channel.empty().into{ chGtfLink; chGffLink }
 }else if (params.gff){
   Channel
@@ -195,7 +196,7 @@ if (params.genome){
     .set { chGff }
   Channel.empty().into{ chGtfLink; chGffLink }
 }else{
-  Channel.empty().into{ chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink }
+  Channel.empty().into{ chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink; chGtfCellranger }
 }
 
 if ( params.build ){
@@ -315,10 +316,10 @@ process getAnnotation {
 }
 
 if (wasFastaUrl){
-  chFastaURL.into{chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2}
+  chFastaURL.into{chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger}
 }
 if (wasGtfUrl){
-  chAnnotURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf; chGtfBed12; chGtfGene}
+  chAnnotURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf; chGtfBed12; chGtfGene; chGtfCellranger}
 }else if (wasGffUrl){
   chAnnotURL.set{chGff}
 }
@@ -341,7 +342,7 @@ if ((params.gff || gff)  && (!params.gtf && !gtf)){
     file gff from chGff
 
     output:
-    file "${gff.baseName}.gtf" into chGtfHisat2Splicesites, chGtfHisat2Index, chGtf, chGtfBed12, chGtfGene
+    file "${gff.baseName}.gtf" into chGtfHisat2Splicesites, chGtfHisat2Index, chGtf, chGtfBed12, chGtfGene, chGtfCellranger
 
     script:
     """
@@ -547,7 +548,7 @@ process makeHisat2Splicesites {
 process makeHisat2Index {
   label 'hisat2'
   label 'highCpu'
-  label 'hugeMem'
+  label 'highMem'
 
   publishDir "${params.outDir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
@@ -571,6 +572,58 @@ process makeHisat2Index {
   hisat2-build -p ${task.cpus} --ss $indexing_splicesites --exon ${gtf.baseName}.hisat2_exons.txt $fasta hisat2/${pfix}
   """
 }
+
+process CellRangerFilterGtf {
+  label 'unix'
+  label 'medCpu'
+  label 'medMem'
+
+  // publishDir "${params.outDir}/indexes/", mode: 'copy',
+  //   saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
+
+  when:
+  'cellranger' in aligners
+
+  input:
+  file gtf from chGtfCellranger
+
+  output:
+  file("cellranger_filtered.gtf") into chFilteredGtfCellranger
+
+  script:
+  // gtfFiltered = gtf.replaceFirst(".gtf", ".filtered.gtf")
+  (full, mem) = (task.memory =~ /(\d+)\s*[a-z]*/)[0]
+  """
+  /bioinfo/local/build/Centos/cellranger/cellranger-3.1.0/cellranger mkgtf $gtf cellranger_filtered.gtf --attribute=gene_biotype:protein_coding --attribute=gene_biotype:lincRNA --attribute=gene_biotype:antisense --attribute=gene_biotype:IG_LV_gene --attribute=gene_biotype:IG_V_gene --attribute=gene_biotype:IG_V_pseudogene --attribute=gene_biotype:IG_D_gene --attribute=gene_biotype:IG_J_gene --attribute=gene_biotype:IG_J_pseudogene --attribute=gene_biotype:IG_C_gene --attribute=gene_biotype:IG_C_pseudogene --attribute=gene_biotype:TR_V_gene --attribute=gene_biotype:TR_V_pseudogene --attribute=gene_biotype:TR_D_gene --attribute=gene_biotype:TR_J_gene --attribute=gene_biotype:TR_J_pseudogene --attribute=gene_biotype:TR_C_gene
+  """
+}
+
+process MakeCellRangerIndex {
+  label 'unix'
+  label 'highCpu'
+  label 'highMem'
+
+  publishDir "${params.outDir}/indexes/", mode: 'copy',
+    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
+
+  when:
+  'cellranger' in aligners
+
+  input:
+  file fasta from chFastaCellranger
+  file filteredGtf from chFilteredGtfCellranger
+
+  output:
+  path("cellranger") into chCellrangerIdx
+
+  script:
+  // gtfFiltered = gtf.replaceFirst(".gtf", ".filtered.gtf")
+  (full, mem) = (task.memory =~ /(\d+)\s*[a-z]*/)[0]
+  """
+  /bioinfo/local/build/Centos/cellranger/cellranger-3.1.0/cellranger mkref --genome=cellranger --fasta=$fasta --genes=$filteredGtf --nthreads ${task.cpus} --memgb ${mem} --ref-version ${build}
+  """
+}
+
 
 
 /***********************
