@@ -24,6 +24,9 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 - [`Bowtie2`](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) 
 - [`STAR`](https://github.com/alexdobin/STAR)
 - [`hisat2`](http://ccb.jhu.edu/software/hisat2/index.shtml)
+- [`cellRanger`](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/what-is-cell-ranger)
+- [`Kallisto`](https://pachterlab.github.io/kallisto/about)
+- [`Salmon`](https://combine-lab.github.io/salmon/)
 5. Process GTF/GFF annotation file for downstream analysis tools
 
 ### Quick help
@@ -32,7 +35,7 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 N E X T F L O W  ~  version 20.01.0
 Launching `main.nf` [furious_volta] - revision: ca21e76c70
 ======================================================================
-annotationMaker v1.1.0dev
+annotationMaker v1.3.0
 ======================================================================
 
 Usage:
@@ -51,9 +54,11 @@ Optional arguments: If --genome is not specified
 	  
 Optional arguments:
   --build [str]                 Build name to use for genome index
-  --indexes [str]               List of indexes to build. Available: all,bwa,star,bowtie2,hisat2,none. Default: all
+  --indexes [str]               List of indexes to build. Available: all,bwa,star,bowtie2,hisat2,cellranger,kallisto,salmon,none. Default: all
 		  
 Other options:
+  --starVersion                 Specify the STAR version to use. Available: 2.7.6a, 2.7.8a
+  --cellRangerPath              Path to cellRanger binary
   --skipGtfProcessing [bool]    Skip the GTF file processing
   --outDir [dir]                The output directory where the results will be saved
   -w/--work-dir [dir]           The temporary directory where intermediate data will be saved
@@ -80,15 +85,13 @@ The pipeline can be run on any infrastructure from a list of input files or from
 See the conf/test.conf to set your test dataset.
 
 ```
-nextflow run main.nf -profile test,conda
-
+nextflow run main.nf -profile test,multiconda
 ```
 
 #### Run the pipeline on a computational cluster
 
 ```
-echo "nextflow run main.nf --genome 'hg19' --outDir MY_OUTPUT_DIR -profile singularity,cluster" | qsub -N makeAnnot"
-
+echo "nextflow run main.nf --genome 'hg19' --outDir MY_OUTPUT_DIR -profile multiconda,cluster" | qsub -N makeAnnot"
 ```
 
 ### Defining the '-profile'

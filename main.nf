@@ -52,6 +52,8 @@ def helpMessage() {
       --indexes [file]              List of indexes to build. Available: all,bwa,star,bowtie2,hisat2,cellranger,kallisto,salmon,none. Default: all
 
     Other options:
+      --starVersion                 Specify the STAR version to use. Available: 2.7.6a, 2.7.8a
+      --cellRangerPath              Path to cellRanger binary
       --skipGtfProcessing [bool]    Skip the GTF file processing
       --outDir [file]               The output directory where the results will be saved
       -w/--work-dir [file]          The temporary directory where intermediate data will be saved
@@ -723,7 +725,7 @@ process makeCellRangerIndex {
 process makeKallistoIndex {
   label 'kallisto'
   label 'medCpu'
-  label 'medMem'
+  label 'highMem'
 
   publishDir "${params.outDir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
@@ -761,9 +763,10 @@ process makeSalmonIndex {
   file transcrpitsFasta from chTranscriptsSalmon
 
   output:
-  file("salmon/") into chSalmonIdx
+  file("salmon_${suffix}/") into chSalmonIdx
 
   script:
+  suffix= transcrpitsFasta.toString() - ~/(.annotation.gtf.gz)?$/
   """
   grep "^>" ${genomeFasta} | cut -d " " -f 1 > decoys.txt
   sed -i.bak -e 's/>//g' decoys.txt
@@ -772,7 +775,7 @@ process makeSalmonIndex {
   salmon index \
     -t gentrome.fa \
     --decoy decoys.txt \
-    -i salmon \
+    -i salmon_${suffix} \
     -p ${task.cpus} \
     --gencode
   """

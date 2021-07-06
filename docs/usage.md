@@ -9,6 +9,8 @@
 * [Main arguments](#main-arguments)
     * [`-profile`](#-profile)
     * [`--genome`](#--genome)
+	* [`--build`](#--build)
+	* [`--indexes`](#--indexes)
 * [Nextflow profiles](#nextflow-profiles)
 * [Job resources](#job-resources)
 * [Other command line parameters](#other-command-line-parameters)
@@ -20,7 +22,7 @@
     * [`--maxMemory`](#-maxmemory)
     * [`--maxTime`](#-maxtime)
     * [`--maxCpus`](#-maxcpus)
-    * [`--multiqcConfig`](#-multiqcconfig)
+
 
 
 ## General Nextflow info
@@ -76,17 +78,21 @@ The list of genomes (and their sources) is available in [`conf/genomes.conf`](..
 The pipeline expects a link to a `fasta` file, and an annotation file (`gtf` or `gff`).  
 If your genome is not available in the config file, the options `--fasta`, `--gtf` or `--gff` can be used on command line.
 
-
-## Other arguments
-
 ### `--build`
 
 Name of the genome build for output prefix. By default the build is extracted from the name of the fasta file.
 
 ### `--indexes`
 
-Specify which indexes you would like to generate (bwa,star,bowtie2,hisat2), as well as `none` or `all` (default).
+Specify which indexes you would like to generate (bwa, star, bowtie2, hisat2, cellranger, kallisto, salmon), as well as `none` or `all` (default).
 Several tools can be specify (comma separated).
+
+**NB:** The `cellRanger` software is not available through conda, and thus need to be already installed on your system. 
+Use the `--cellRangerPath` option to specify where the software is installed. This path is added into the `PATH` variable before running cellRanger.
+
+**NB:** Each `STAR` indexes are specific to a given `STAR` version. Therefore, it is useful to specify which STAR version you would like to use, or at least to provide a way to
+deal with multiple STAR version. The `--starVersion` parameter allows you to specify which version you would like to use. It only works for the `-profile multiconda` and
+currently support `STAR` version **2.7.6a** (the default) and **2.7.8a**.
 
 ## Nextflow profiles
 
