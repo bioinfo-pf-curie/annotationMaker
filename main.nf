@@ -125,7 +125,12 @@ if (params.genomes && params.genome && !params.genomes.containsKey(params.genome
    exit 1, "The provided genome '${params.genome}' is not available in the genomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
 }
 wasFastaUrl=false
-if (params.genome){
+if (params.fasta){
+  Channel.fromPath("${params.fasta}")
+    .ifEmpty { exit 1, "Reference Genome not found: ${params.fasta}" }
+    .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaSalmon }
+  chFastaLink = Channel.empty()
+}else if (params.genome){
   fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : false
   if (fasta){
     if (fasta.startsWith("http") || fasta.startsWith("ftp")){
@@ -136,22 +141,22 @@ if (params.genome){
     }else{
       Channel.fromPath(fasta)
         .ifEmpty { exit 1, "Reference Genome not found: ${fasta}" }
-        .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaKallisto; chFastaSalmon }
+        .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaSalmon }
       chFastaLink = Channel.empty()
     }
   }else{
     exit 1, "Fasta file not found for ${params.genome} : ${fasta}"
   }
-}else if (params.fasta){
-  Channel.fromPath("${params.fasta}")
-    .ifEmpty { exit 1, "Reference Genome not found: ${params.fasta}" }
-    .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaKallisto; chFastaSalmon }
-  chFastaLink = Channel.empty()
 }
 
 // Transcriptome
 wasTrsUrl=true
-if (params.genome){
+if (params.transcriptome){
+  Channel.fromPath("${params.transcriptome}")
+    .ifEmpty { exit 1, "Reference Genome not found: ${params.transcriptome}" }
+    .set { chTranscriptsSalmon; chTranscriptsKallisto }
+  chTrsLink = Channel.empty()
+}else if (params.genome){
   transcriptome = params.genome ? params.genomes[ params.genome ].transcripts ?: false : false
   if (transcriptome){
     if (transcriptome.startsWith("http") || transcriptome.startsWith("ftp")){
@@ -162,23 +167,31 @@ if (params.genome){
       Channel
         .fromPath(transcriptome)
         .ifEmpty { exit 1, "Reference annotation file not found: ${transcriptome}" }
-        .set { chTranscriptsSalmon }
+        .set { chTranscriptsSalmon; chTranscriptsKallisto }
     }
   }else{
     log.warn("No transcripts file detected for ${params.genome}") 
-    Channel.empty().into{ chTrsLink; chTranscriptsSalmon }
+    Channel.empty().into{ chTrsLink; chTranscriptsSalmon; chTranscriptsKallisto }
   }
-}else if (params.transcriptome){
-  Channel.fromPath("${params.transcriptome}")
-    .ifEmpty { exit 1, "Reference Genome not found: ${params.transcriptome}" }
-    .set { chTranscriptsSalmon }
-  chTrsLink = Channel.empty()
 }
 
 // GTF
 wasGtfUrl=false
 wasGffUrl=false
-if (params.genome){
+
+if (params.gtf){
+  Channel
+    .fromPath(params.gtf)
+    .ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
+    .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene; chGtfCellranger; chGtfBustools }
+  Channel.empty().into{ chGtfLink; chGffLink }
+}else if (params.gff){
+  Channel
+    .fromPath(params.gff)
+    .ifEmpty { exit 1, "GFF annotation file not found: ${params.gtf}" }
+    .set { chGff }
+  Channel.empty().into{ chGtfLink; chGffLink }
+}else if (params.genome){
   gtf = params.genome ? params.genomes[ params.genome ].gtf ?: false : false
   gff = params.genome ? params.genomes[ params.genome ].gff ?: false : false
 
@@ -217,31 +230,17 @@ if (params.genome){
     log.warn("No GTF/GFF information detected for ${params.genome}")
     Channel.empty().into{ chGff; chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink; chGtfCellranger; chGtfBustools }
   }
-}else if (params.gtf){
-  Channel
-    .fromPath(params.gtf)
-    .ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
-    .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene; chGtfCellranger; chGtfBustools }
-  Channel.empty().into{ chGtfLink; chGffLink }
-}else if (params.gff){
-  Channel
-    .fromPath(params.gff)
-    .ifEmpty { exit 1, "GFF annotation file not found: ${params.gtf}" }
-    .set { chGff }
-  Channel.empty().into{ chGtfLink; chGffLink }
 }else{
   Channel.empty().into{ chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink; chGtfCellranger; chGtfBustools }
 }
 
 if ( params.build ){
   build = params.build
+}else if (params.genome){
+  build = params.genome
 }else{
-  if (params.genome){
-    build = params.genome
-  }else{
-    fafile = file(params.fasta)
-    build = fafile.baseName - ~/(\.fa)?(\.fasta)?(\.gz)?$/
-  }
+  fafile = file(params.fasta)
+  build = fafile.baseName - ~/(\.fa)?(\.fasta)?(\.gz)?$/
 }
 
 // Header log info
@@ -256,14 +255,9 @@ Annotation Maker workflow v${workflow.manifest.version}
 ======================================================="""
 def summary = [:]
 summary['Command Line'] = workflow.commandLine
-if (params.genome){
-summary['Fasta']          = fasta
-summary['Transcripts']    = transcriptome
-}else{
-summary['Fasta']          = params.fasta
-summary['Transcripts']    = params.transcriptome
-}
 summary['Build']          = build
+summary['Fasta']          = params.fasta ?: params.genome ? fasta : ""
+summary['Transcripts']    = params.transcripts ?: params.genome ? transcriptome : ""
 if (params.gtf || gtf ){
 summary['Gtf']            = params.gtf ?: gtf
 }
@@ -382,7 +376,7 @@ if (wasFastaUrl){
   chFastaURL.into{chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaKallisto; chFastaSalmon}
 }
 if (wasTrsUrl){
-  chTrsURL.set{chTranscriptsSalmon}
+  chTrsURL.into{chTranscriptsSalmon; chTranscriptsKallisto}
 }
 if (wasGtfUrl){
   chAnnotURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf; chGtfBed12; chGtfGene; chGtfCellranger; chGtfBustools}
@@ -734,7 +728,7 @@ process makeKallistoIndex {
   'kallisto' in aligners
 
   input:
-  file fasta from chFastaKallisto
+  file fasta from chTranscriptsKallisto
 
   output:
   file("kallisto") into chKallistoIdx

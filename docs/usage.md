@@ -87,6 +87,10 @@ Name of the genome build for output prefix. By default the build is extracted fr
 Specify which indexes you would like to generate (bwa, star, bowtie2, hisat2, cellranger, kallisto, salmon), as well as `none` or `all` (default).
 Several tools can be specify (comma separated).
 
+```
+--indexes 'star,salmon,kallisto'
+```
+
 **NB:** The `cellRanger` software is not available through conda, and thus need to be already installed on your system. 
 Use the `--cellRangerPath` option to specify where the software is installed. This path is added into the `PATH` variable before running cellRanger.
 
