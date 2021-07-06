@@ -324,7 +324,7 @@ process getTranscriptome {
   label 'lowCpu'
   label 'lowMem'
 
-  publishDir "${params.outDir}/genome", mode: 'copy',
+  publishDir "${params.outDir}/gtf", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
 
   input:
@@ -690,7 +690,7 @@ process cellRangerFilterGtf {
 process makeCellRangerIndex {
   label 'unix'
   label 'highCpu'
-  label 'highMem'
+  label 'extraMem'
 
   publishDir "${params.outDir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
@@ -719,7 +719,7 @@ process makeCellRangerIndex {
 process makeKallistoIndex {
   label 'kallisto'
   label 'medCpu'
-  label 'highMem'
+  label 'medMem'
 
   publishDir "${params.outDir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
@@ -728,15 +728,16 @@ process makeKallistoIndex {
   'kallisto' in aligners
 
   input:
-  file fasta from chTranscriptsKallisto
+  file transcrpitsFasta from chTranscriptsKallisto
 
   output:
   file("kallisto") into chKallistoIdx
 
   script:
+  suffix= transcrpitsFasta.toString() - ~/'(\.)?(_)?(transcripts.fa)?(.gz)?$/
   """
-  mkdir -p kallisto
-  kallisto index -i kallisto/transcriptome.idx $fasta
+  mkdir -p kallisto_${build}_${suffix}
+  kallisto index -i kallisto_${suffix}/transcriptome.idx $transcrpitsFasta
   """
 }
 
@@ -744,7 +745,7 @@ process makeKallistoIndex {
 process makeSalmonIndex {
   label 'salmon'
   label 'medCpu'
-  label 'medMem'
+  label 'highMem'
 
   publishDir "${params.outDir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
@@ -760,7 +761,7 @@ process makeSalmonIndex {
   file("salmon_${suffix}/") into chSalmonIdx
 
   script:
-  suffix= transcrpitsFasta.toString() - ~/(.annotation.gtf.gz)?$/
+  suffix= transcrpitsFasta.toString() - ~/(\.)?(_)?(transcripts.fa)?(.gz)?$/
   """
   grep "^>" ${genomeFasta} | cut -d " " -f 1 > decoys.txt
   sed -i.bak -e 's/>//g' decoys.txt
@@ -769,9 +770,13 @@ process makeSalmonIndex {
   salmon index \
     -t gentrome.fa \
     --decoy decoys.txt \
-    -i salmon_${suffix} \
+    -i salmon_${build}_${suffix} \
     -p ${task.cpus} \
     --gencode
+
+  mv gentrome.fa salmon_${suffix}/
+  gzip salmon_${suffix}/*.fa
+  mv decoys.txt salmon_${suffix}/
   """
 }
 
