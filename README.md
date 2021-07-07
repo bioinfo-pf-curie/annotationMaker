@@ -88,10 +88,22 @@ See the conf/test.conf to set your test dataset.
 nextflow run main.nf -profile test,multiconda
 ```
 
-#### Run the pipeline on a computational cluster
+#### Generate all annotations for a given species from an existing conda cache
 
 ```
-echo "nextflow run main.nf --genome 'hg19' --outDir MY_OUTPUT_DIR -profile multiconda,cluster" | qsub -N makeAnnot"
+echo "nextflow run main.nf --genome 'hg38' \
+      -profile multiconda,cluster --condaCacheDir MY_CONDA_CACHE \
+      --outDir MY_OUTPUT_DIR -w MY_WORK_DIR" | qsub -N makeAnnot"
+```
+
+#### Generate a few indexes from already downloaded genome fasta file
+
+```
+echo "nextflow run main.nf --genome mm39 \
+      --starVersion 2.7.8a --indexes star,kallisto,salmon \
+	  --fasta GENOME_FASTA --skipGtfProcessing \
+	  -profile multiconda,cluster --condaCacheDir MY_CONDA_CACHE \
+	  --outDir MY_OUTPUT_DIR -w MY_WORK_DIR -resume" | qsub -N hg19
 ```
 
 ### Defining the '-profile'

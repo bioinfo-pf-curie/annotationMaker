@@ -151,10 +151,10 @@ if (params.fasta){
 
 // Transcriptome
 wasTrsUrl=true
-if (params.transcriptome){
-  Channel.fromPath("${params.transcriptome}")
-    .ifEmpty { exit 1, "Reference Genome not found: ${params.transcriptome}" }
-    .set { chTranscriptsSalmon; chTranscriptsKallisto }
+if (params.transcripts){
+  Channel.fromPath("${params.transcripts}")
+    .ifEmpty { exit 1, "Reference Genome not found: ${params.transcripts}" }
+    .into { chTranscriptsSalmon; chTranscriptsKallisto }
   chTrsLink = Channel.empty()
 }else if (params.genome){
   transcriptome = params.genome ? params.genomes[ params.genome ].transcripts ?: false : false
@@ -167,7 +167,7 @@ if (params.transcriptome){
       Channel
         .fromPath(transcriptome)
         .ifEmpty { exit 1, "Reference annotation file not found: ${transcriptome}" }
-        .set { chTranscriptsSalmon; chTranscriptsKallisto }
+        .into { chTranscriptsSalmon; chTranscriptsKallisto }
     }
   }else{
     log.warn("No transcripts file detected for ${params.genome}") 
@@ -178,7 +178,8 @@ if (params.transcriptome){
 // GTF
 wasGtfUrl=false
 wasGffUrl=false
-
+gff=false
+gtf=false
 if (params.gtf){
   Channel
     .fromPath(params.gtf)
@@ -258,12 +259,8 @@ summary['Command Line'] = workflow.commandLine
 summary['Build']          = build
 summary['Fasta']          = params.fasta ?: params.genome ? fasta : ""
 summary['Transcripts']    = params.transcripts ?: params.genome ? transcriptome : ""
-if (params.gtf || gtf ){
-summary['Gtf']            = params.gtf ?: gtf
-}
-if (params.gff || gff ){
-summary['Gff']            = params.gff ?: gff
-}
+summary['Gtf']            = params.gtf ?: params.genome ? gtf : ""
+summary['Gff']            = params.gff ?: params.genome ? gff : ""
 summary['Indexes']        = aligners
 summary['Max Memory']     = params.maxMemory
 summary['Max CPUs']       = params.maxCpus
@@ -731,12 +728,12 @@ process makeKallistoIndex {
   file transcrpitsFasta from chTranscriptsKallisto
 
   output:
-  file("kallisto") into chKallistoIdx
+  file("kallisto_${suffix}") into chKallistoIdx
 
   script:
-  suffix= transcrpitsFasta.toString() - ~/'(\.)?(_)?(transcripts.fa)?(.gz)?$/
+  suffix=transcrpitsFasta.toString() - ~/(_)?(transcripts.fa)?(.gz)?$/
   """
-  mkdir -p kallisto_${build}_${suffix}
+  mkdir -p kallisto_${suffix}
   kallisto index -i kallisto_${suffix}/transcriptome.idx $transcrpitsFasta
   """
 }
@@ -761,7 +758,7 @@ process makeSalmonIndex {
   file("salmon_${suffix}/") into chSalmonIdx
 
   script:
-  suffix= transcrpitsFasta.toString() - ~/(\.)?(_)?(transcripts.fa)?(.gz)?$/
+  suffix=transcrpitsFasta.toString() - ~/(_)?(transcripts.fa)?(.gz)?$/
   """
   grep "^>" ${genomeFasta} | cut -d " " -f 1 > decoys.txt
   sed -i.bak -e 's/>//g' decoys.txt
@@ -770,7 +767,7 @@ process makeSalmonIndex {
   salmon index \
     -t gentrome.fa \
     --decoy decoys.txt \
-    -i salmon_${build}_${suffix} \
+    -i salmon_${suffix} \
     -p ${task.cpus} \
     --gencode
 
