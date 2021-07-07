@@ -185,13 +185,13 @@ if (params.gtf){
     .fromPath(params.gtf)
     .ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
     .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene; chGtfCellranger; chGtfBustools }
-  Channel.empty().into{ chGtfLink; chGffLink }
+  Channel.empty().into{ chGff; chGtfLink; chGffLink }
 }else if (params.gff){
   Channel
     .fromPath(params.gff)
     .ifEmpty { exit 1, "GFF annotation file not found: ${params.gtf}" }
     .set { chGff }
-  Channel.empty().into{ chGtfLink; chGffLink }
+  Channel.empty().into{ chGtf; chGtfLink; chGffLink }
 }else if (params.genome){
   gtf = params.genome ? params.genomes[ params.genome ].gtf ?: false : false
   gff = params.genome ? params.genomes[ params.genome ].gff ?: false : false
@@ -381,12 +381,6 @@ if (wasGtfUrl){
   chAnnotURL.set{chGff}
 }
 
-
-
-/*
- * GTF/GFF processing
- */
-
 if ((params.gff || gff)  && (!params.gtf && !gtf)){
   process convertGFFtoGTF {
     label 'gffread'
@@ -401,36 +395,9 @@ if ((params.gff || gff)  && (!params.gtf && !gtf)){
     output:
     file "${gff.baseName}.gtf" into chGtfHisat2Splicesites, chGtfHisat2Index, chGtf, chGtfBed12, chGtfGene, chGtfCellranger, chGtfBustools
 
-    script:cellranger
-    """
-    gffread $gff --keep-exon-attrs -F -T -o ${gff.baseName}.gtf
-    """
-  }
-
-  process makeBustoolAnnot {
-    label 'bustools'
-    label 'medCpu'
-    label 'medMem'
-
-    publishDir "${params.outDir}/gtf/", mode: 'copy',
-      saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-    when:
-    'kallisto' in aligners
-
-    input:
-    file gtf from chGtfBustools
-
-    output:
-    set("${gtf.baseName}_txp2gene.tsv", "${gtf.baseName}_gene_trad.csv") into chBustoolsAnnot
-
     script:
     """
-    cat $gtf | grep -v "^#" | grep "gene_id" | grep "transcript_id" | awk 'BEGIN{FS="\t"}{print \$9}' | \
-    awk 'BEGIN{FS="gene_id "}{print \$2}' | awk 'BEGIN{FS=";"}{print \$1}' | sed 's/"//g' > gene.tmp
-    cat $gtf | grep -v "^#" | grep "gene_id" | grep "transcript_id" | awk 'BEGIN{FS="\t"}{print \$9}' | \
-    awk 'BEGIN{FS="transcript_id "}{print \$2}' | awk 'BEGIN{FS=";"}{print \$1}' | sed 's/"//g' > txp.tmp
-    paste txp.tmp gene.tmp | sort | uniq > ${gtf.baseName}_txp2gene.tsv
+    gffread $gff --keep-exon-attrs -F -T -o ${gff.baseName}.gtf
     """
   }
 }
@@ -716,7 +683,7 @@ process makeCellRangerIndex {
 process makeKallistoIndex {
   label 'kallisto'
   label 'medCpu'
-  label 'medMem'
+  label 'highMem'
 
   publishDir "${params.outDir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
@@ -731,7 +698,7 @@ process makeKallistoIndex {
   file("kallisto_${suffix}") into chKallistoIdx
 
   script:
-  suffix=transcrpitsFasta.toString() - ~/(_)?(transcripts.fa)?(.gz)?$/
+  suffix=transcrpitsFasta.toString() - ~/([_.])?(transcripts.fa)?(.gz)?$/
   """
   mkdir -p kallisto_${suffix}
   kallisto index -i kallisto_${suffix}/transcriptome.idx $transcrpitsFasta
@@ -758,7 +725,7 @@ process makeSalmonIndex {
   file("salmon_${suffix}/") into chSalmonIdx
 
   script:
-  suffix=transcrpitsFasta.toString() - ~/(_)?(transcripts.fa)?(.gz)?$/
+  suffix=transcrpitsFasta.toString() - ~/([_.])?(transcripts.fa)?(.gz)?$/
   """
   grep "^>" ${genomeFasta} | cut -d " " -f 1 > decoys.txt
   sed -i.bak -e 's/>//g' decoys.txt
@@ -780,6 +747,33 @@ process makeSalmonIndex {
 /***********************
  * GTF Annotation
  */
+
+process makeBustoolAnnot {
+  label 'bustools'
+  label 'medCpu'
+  label 'medMem'
+
+  publishDir "${params.outDir}/gtf/", mode: 'copy',
+    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
+
+  when:
+  'kallisto' in aligners
+
+  input:
+  file gtf from chGtfBustools
+
+  output:
+  file("${gtf.baseName}_txp2gene.tsv") into chBustoolsAnnot
+
+  script:
+  """
+  cat $gtf | grep -v "^#" | grep "gene_id" | grep "transcript_id" | awk 'BEGIN{FS="\t"}{print \$9}' | \
+  awk 'BEGIN{FS="gene_id "}{print \$2}' | awk 'BEGIN{FS=";"}{print \$1}' | sed 's/"//g' > gene.tmp
+  cat $gtf | grep -v "^#" | grep "gene_id" | grep "transcript_id" | awk 'BEGIN{FS="\t"}{print \$9}' | \
+  awk 'BEGIN{FS="transcript_id "}{print \$2}' | awk 'BEGIN{FS=";"}{print \$1}' | sed 's/"//g' > txp.tmp
+  paste txp.tmp gene.tmp | sort | uniq > ${gtf.baseName}_txp2gene.tsv
+  """
+}
 
 // Extract protein-coding genes only
 process reduceGtf {
