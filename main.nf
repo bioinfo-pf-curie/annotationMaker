@@ -173,6 +173,8 @@ if (params.transcripts){
     log.warn("No transcripts file detected for ${params.genome}") 
     Channel.empty().into{ chTrsLink; chTranscriptsSalmon; chTranscriptsKallisto }
   }
+}else{
+  Channel.empty().into{ chTrsLink; chTranscriptsSalmon; chTranscriptsKallisto }
 }
 
 // GTF
@@ -258,9 +260,9 @@ def summary = [:]
 summary['Command Line'] = workflow.commandLine
 summary['Build']          = build
 summary['Fasta']          = params.fasta ?: params.genome ? fasta : ""
-summary['Transcripts']    = params.transcripts ?: params.genome ? transcriptome : ""
-summary['Gtf']            = params.gtf ?: params.genome ? gtf : ""
-summary['Gff']            = params.gff ?: params.genome ? gff : ""
+summary['Transcripts']    = params.transcripts ?: params.genome ? transcriptome : "false"
+summary['Gtf']            = params.gtf ?: params.genome ? gtf : "false"
+summary['Gff']            = params.gff ?: params.genome ? gff : "false"
 summary['Indexes']        = aligners
 summary['Max Memory']     = params.maxMemory
 summary['Max CPUs']       = params.maxCpus
@@ -510,7 +512,7 @@ process makeBwaIndex {
   output:
   file "bwa" into chBwaIdx
 
-  script:chGtfCellranger
+  script:
   pfix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
   """
   mkdir bwa
