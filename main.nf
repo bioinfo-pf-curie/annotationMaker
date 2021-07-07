@@ -186,7 +186,7 @@ if (params.gtf){
   Channel
     .fromPath(params.gtf)
     .ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
-    .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene; chGtfCellranger; chGtfBustools }
+    .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene; chGtfCellranger }
   Channel.empty().into{ chGff; chGtfLink; chGffLink }
 }else if (params.gff){
   Channel
@@ -212,7 +212,7 @@ if (params.gtf){
       Channel
         .fromPath(gtf)
         .ifEmpty { exit 1, "GTF annotation file not found: ${gtf}" }
-        .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene; chGtfCellranger; chGtfBustools }
+        .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene; chGtfCellranger }
       Channel.empty().into{ chGtfLink; chGffLink }
     }
   }else if (gff){
@@ -231,10 +231,10 @@ if (params.gtf){
     }
   }else{
     log.warn("No GTF/GFF information detected for ${params.genome}")
-    Channel.empty().into{ chGff; chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink; chGtfCellranger; chGtfBustools }
+    Channel.empty().into{ chGff; chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink; chGtfCellranger }
   }
 }else{
-  Channel.empty().into{ chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink; chGtfCellranger; chGtfBustools }
+  Channel.empty().into{ chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink; chGtfCellranger }
 }
 
 if ( params.build ){
@@ -378,7 +378,7 @@ if (wasTrsUrl){
   chTrsURL.into{chTranscriptsSalmon; chTranscriptsKallisto}
 }
 if (wasGtfUrl){
-  chAnnotURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf; chGtfBed12; chGtfGene; chGtfCellranger; chGtfBustools}
+  chAnnotURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf; chGtfBed12; chGtfGene; chGtfCellranger}
 }else if (wasGffUrl){
   chAnnotURL.set{chGff}
 }
@@ -395,7 +395,7 @@ if ((params.gff || gff)  && (!params.gtf && !gtf)){
     file gff from chGff
 
     output:
-    file "${gff.baseName}.gtf" into chGtfHisat2Splicesites, chGtfHisat2Index, chGtf, chGtfBed12, chGtfGene, chGtfCellranger, chGtfBustools
+    file "${gff.baseName}.gtf" into {chGtfHisat2Splicesites, chGtfHisat2Index, chGtf, chGtfBed12, chGtfGene, chGtfCellranger}
 
     script:
     """
@@ -749,33 +749,6 @@ process makeSalmonIndex {
 /***********************
  * GTF Annotation
  */
-
-process makeBustoolAnnot {
-  label 'bustools'
-  label 'medCpu'
-  label 'medMem'
-
-  publishDir "${params.outDir}/gtf/", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  when:
-  'kallisto' in aligners
-
-  input:
-  file gtf from chGtfBustools
-
-  output:
-  file("${gtf.baseName}_txp2gene.tsv") into chBustoolsAnnot
-
-  script:
-  """
-  cat $gtf | grep -v "^#" | grep "gene_id" | grep "transcript_id" | awk 'BEGIN{FS="\t"}{print \$9}' | \
-  awk 'BEGIN{FS="gene_id "}{print \$2}' | awk 'BEGIN{FS=";"}{print \$1}' | sed 's/"//g' > gene.tmp
-  cat $gtf | grep -v "^#" | grep "gene_id" | grep "transcript_id" | awk 'BEGIN{FS="\t"}{print \$9}' | \
-  awk 'BEGIN{FS="transcript_id "}{print \$2}' | awk 'BEGIN{FS=";"}{print \$1}' | sed 's/"//g' > txp.tmp
-  paste txp.tmp gene.tmp | sort | uniq > ${gtf.baseName}_txp2gene.tsv
-  """
-}
 
 // Extract protein-coding genes only
 process reduceGtf {
