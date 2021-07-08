@@ -4,5 +4,5 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - bioconda::kallisto=0.46.2
-  - bioconda::bustools=0.40.0
+  - bioconda::kallisto=0.46.2=h60f4f9f_2
+  - bioconda::bustools=0.40.0=h60f4f9f_1

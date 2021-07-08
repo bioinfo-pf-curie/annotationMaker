@@ -4,6 +4,6 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - conda-forge::r-base=4.0.3
-  - bioconda::bioconductor-genomicfeatures=1.40.0
-  - bioconda::bioconductor-rtracklayer=1.48.0
+  - conda-forge::r-base=4.0.3=h349a78a_8
+  - bioconda::bioconductor-genomicfeatures=1.40.0=r40_0
+  - bioconda::bioconductor-rtracklayer=1.48.0=r40h037d062_0
