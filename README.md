@@ -101,9 +101,9 @@ echo "nextflow run main.nf --genome 'hg38' \
 ```
 echo "nextflow run main.nf --genome mm39 \
       --starVersion 2.7.8a --indexes star,kallisto,salmon \
-	  --fasta GENOME_FASTA --skipGtfProcessing \
-	  -profile multiconda,cluster --condaCacheDir MY_CONDA_CACHE \
-	  --outDir MY_OUTPUT_DIR -w MY_WORK_DIR -resume" | qsub -N hg19
+      --fasta GENOME_FASTA --skipGtfProcessing \
+      -profile multiconda,cluster --condaCacheDir MY_CONDA_CACHE \
+      --outDir MY_OUTPUT_DIR -w MY_WORK_DIR -resume" | qsub -N hg19
 ```
 
 ### Defining the '-profile'
