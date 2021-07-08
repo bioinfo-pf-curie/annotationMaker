@@ -395,7 +395,7 @@ if ((params.gff || gff)  && (!params.gtf && !gtf)){
     file gff from chGff
 
     output:
-    file "${gff.baseName}.gtf" into {chGtfHisat2Splicesites, chGtfHisat2Index, chGtf, chGtfBed12, chGtfGene, chGtfCellranger}
+    file "${gff.baseName}.gtf" into chGtfHisat2Splicesites, chGtfHisat2Index, chGtf, chGtfBed12, chGtfGene, chGtfCellranger
 
     script:
     """
