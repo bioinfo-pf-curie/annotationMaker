@@ -16,10 +16,10 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 
 ### Pipline summary
 
-1. Process `.fasta` file and generate `.dict` and `.fai` files
-2. Generate chromosome size file
-3. Calculate the effective genome size as the sum of non 'N' base on the genome.
-4. Generate indexes for :
+1. Processes `.fasta` file and generates `.dict` and `.fai` files
+2. Generates chromosome size file
+3. Calculates the effective genome size as the sum of non 'N' base on the genome.
+4. Generates indexes for :
 - [`BWA`](http://bio-bwa.sourceforge.net/)
 - [`Bowtie2`](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) 
 - [`STAR`](https://github.com/alexdobin/STAR)
@@ -27,7 +27,7 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 - [`cellRanger`](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/what-is-cell-ranger)
 - [`Kallisto`](https://pachterlab.github.io/kallisto/about)
 - [`Salmon`](https://combine-lab.github.io/salmon/)
-5. Process GTF/GFF annotation file for downstream analysis tools
+5. Processes GTF/GFF annotation file for downstream analysis tools
 
 ### Quick help
 
