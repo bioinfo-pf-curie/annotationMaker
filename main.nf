@@ -356,7 +356,10 @@ process getAnnotation {
   val(url) from chGffLink.concat(chGtfLink).dump(tag:'annot')
 
   output:
-  file("*.{gtf,gff}") into chAnnotURL
+  file("*.{gtf,gff,gff3}") into chAnnotURL
+
+  when:
+  !params.skipGtfProcessing
 
   script:
   if (url.endsWith(".gz")){
@@ -599,7 +602,7 @@ process makeHisat2Splicesites {
 process makeHisat2Index {
   label 'hisat2'
   label 'highCpu'
-  label 'highMem'
+  label 'hugeMem'
 
   publishDir "${params.outDir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}

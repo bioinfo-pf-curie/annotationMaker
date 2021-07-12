@@ -12,7 +12,11 @@ library(GenomicFeatures)
 library(rtracklayer)
 
 ## Make TxDB
-txdb <- makeTxDbFromGFF(input, format="gtf")
+x <- import(input)
+## Remove genes without gene_id which make MakeTxDb crashing
+x <- x[which(!is.na(x$gene_id))]
+## Bild db
+txdb <- makeTxDbFromGRanges(x)
 g <- genes(txdb)
 
 ## Sort genes
