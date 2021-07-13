@@ -798,7 +798,7 @@ process gtf2bed12 {
 
   script:
   """
-  gtfToGenePred -genePredExt -geneNameAsName2 -allErrors -ignoreGroupsWithoutExons ${gtf} ${gtf.baseName}.genepred 2> genepred.log
+  gtfToGenePred ${params.genepredOpts} ${gtf} ${gtf.baseName}.genepred 2> genepred.log
   genePredToBed ${gtf.baseName}.genepred ${gtf.baseName}.bed12
   """
 }
