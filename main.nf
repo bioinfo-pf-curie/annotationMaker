@@ -52,7 +52,7 @@ def helpMessage() {
       --indexes [file]              List of indexes to build. Available: all,bwa,star,bowtie2,hisat2,cellranger,kallisto,salmon,none. Default: all
 
     Other options:
-      --starVersion                 Specify the STAR version to use. Available: 2.7.6a, 2.7.8a
+      --starVersion                 Specify the STAR version to use. Available: 2.6.1b, 2.7.6a, 2.7.8a
       --cellRangerPath              Path to cellRanger binary
       --skipGtfProcessing [bool]    Skip the GTF file processing
       --outDir [file]               The output directory where the results will be saved
@@ -94,8 +94,8 @@ def defineAligners() {
         'none']
 }
 
-if (params.starVersion != "2.7.8a" && params.starVersion != "2.7.6a"){
-  exit 1, "The provided STAR version is not available. Use either 2.7.6a or 2.7.8a"
+if (params.starVersion != "2.7.8a" && params.starVersion != "2.7.6a" && params.starVersion != "2.6.1b"){
+  exit 1, "The provided STAR version is not available. Use either 2.6.1b, 2.7.6a or 2.7.8a"
 }
 
 // Compare each parameter with a list of parameters
@@ -393,6 +393,9 @@ if ((params.gff || gff)  && (!params.gtf && !gtf)){
     label 'lowMem'
 
     publishDir "${params.outDir}/gtf", mode: 'copy'
+
+    when:
+    !params.skipGtfProcessing
 
     input:
     file gff from chGff
