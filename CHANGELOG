@@ -1,4 +1,13 @@
 **********************************
+version-1.3.1
+
+SIGNIFICANT USER-VISIBLE CHANGES
+   - Update hg38 reference genome
+
+BUG FIXES
+   - small fix to build hg38 genome from tar.gz file
+
+**********************************
 version-1.3.0
 
 NEW FEATURES
