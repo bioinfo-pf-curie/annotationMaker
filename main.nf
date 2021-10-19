@@ -150,7 +150,7 @@ if (params.fasta){
 }
 
 // Transcriptome
-wasTrsUrl=true
+wasTrsUrl=false
 if (params.transcripts){
   Channel.fromPath("${params.transcripts}")
     .ifEmpty { exit 1, "Reference Genome not found: ${params.transcripts}" }
@@ -160,6 +160,7 @@ if (params.transcripts){
   transcriptome = params.genome ? params.genomes[ params.genome ].transcripts ?: false : false
   if (transcriptome){
     if (transcriptome.startsWith("http") || transcriptome.startsWith("ftp")){
+      wasTrsUrl=true
       Channel.from(transcriptome)
         .ifEmpty { exit 1, "Reference annotation not found: ${transcriptome}" }
         .set { chTrsLink }
@@ -690,7 +691,7 @@ process makeCellRangerIndex {
 
 process kallistoCorrectFasta {
   label 'unix'
-  label 'lowCpu'
+  label 'medCpu'
   label 'lowMem'
 
   when:
@@ -706,6 +707,7 @@ process kallistoCorrectFasta {
   """
   cat ${transcriptsFasta} | \
   awk -F  "|" '{if(\$0 ~ /^>.*/){print \$1;} else {print \$0;}}' | \
+  sed 's/\\_mRNA//' | \
   grep -vE  ".*_PAR_Y.*" > \
   corTranscripts.fa
   """
@@ -714,7 +716,7 @@ process kallistoCorrectFasta {
 process makeKallistoIndex {
   label 'kallisto'
   label 'medCpu'
-  label 'medMem'
+  label 'highMem'
 
   publishDir "${params.outDir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
