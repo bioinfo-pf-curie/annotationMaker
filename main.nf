@@ -688,10 +688,33 @@ process makeCellRangerIndex {
   """
 }
 
+process kallistoCorrectFasta {
+  label 'unix'
+  label 'lowCpu'
+  label 'lowMem'
+
+  when:
+  'kallisto' in aligners
+
+  input:
+  file transcriptsFasta from chTranscriptsKallisto
+
+  output:
+  file("corTranscripts.fa") into chCorrectTranscriptsKallisto
+
+  script:
+  """
+  cat ${transcriptsFasta} | \
+  awk -F  "|" '{if(\$0 ~ /^>.*/){print \$1;} else {print \$0;}}' | \
+  grep -vE  ".*_PAR_Y.*" > \
+  corTranscripts.fa
+  """
+}
+
 process makeKallistoIndex {
   label 'kallisto'
   label 'medCpu'
-  label 'highMem'
+  label 'medMem'
 
   publishDir "${params.outDir}/indexes/", mode: 'copy',
     saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
@@ -700,16 +723,16 @@ process makeKallistoIndex {
   'kallisto' in aligners
 
   input:
-  file transcrpitsFasta from chTranscriptsKallisto
+  file corrTranscrpitsFasta from chCorrectTranscriptsKallisto
 
   output:
   file("kallisto_${suffix}") into chKallistoIdx
 
   script:
-  suffix=transcrpitsFasta.toString() - ~/([_.])?(transcripts.fa)?(.gz)?$/
+  suffix=corrTranscrpitsFasta.toString() - ~/([_.])?(corrTranscripts.fa)?(.gz)?$/
   """
   mkdir -p kallisto_${suffix}
-  kallisto index -i kallisto_${suffix}/transcriptome.idx $transcrpitsFasta
+  kallisto index -i kallisto_${suffix}/transcriptome.idx $corrTranscrpitsFasta
   """
 }
 
