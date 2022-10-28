@@ -11,7 +11,6 @@ process {
     saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
   ]
 
-  // Fasta
   withName:'getFastaFromURL' {
     publishDir = [
       path: { "${params.outDir}/genome/" },
@@ -20,15 +19,6 @@ process {
     ]
   }
 
-  withName:'samtoolsFaidx|createSequenceDictionary|getChromSizes|faSize' {
-    publishDir = [
-      path: { "${params.outDir}/genome/" },
-      mode: 'copy',
-      saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
-    ]
-  }
-
-  // GTF
   withName:'getTranscriptome' {
     publishDir = [
       path: { "${params.outDir}/gtf/" },
@@ -37,7 +27,7 @@ process {
     ]
   }
 
-  withName:'getAnnotation|reduceGtf|gtf2bed12|gtf2genes' {
+  withName:'getAnnotation' {
     publishDir = [
       path: { "${params.outDir}/gtf/" },
       mode: 'copy',
@@ -51,7 +41,38 @@ process {
       mode: 'copy',
       saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
     ]
-    ext.args = "--keep-exon-attrs -F -T"
+  }
+
+  withName:'samtoolsFaidx' {
+    publishDir = [
+      path: { "${params.outDir}/genome/" },
+      mode: 'copy',
+      saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
+    ]
+  }
+
+  withName:'createSequenceDictionary' {
+    publishDir = [
+      path: { "${params.outDir}/genome/" },
+      mode: 'copy',
+      saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
+    ]
+  }
+
+  withName:'getChromSizes' {
+    publishDir = [
+      path: { "${params.outDir}/genome/" },
+      mode: 'copy',
+      saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
+    ]
+  }
+
+  withName:'faSize' {
+    publishDir = [
+      path: { "${params.outDir}/genome/" },
+      mode: 'copy',
+      saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
+    ]
   }
 
   // Indexes
@@ -59,9 +80,9 @@ process {
     publishDir = [
       path: { "${params.outDir}/indexes/" },
       mode: 'copy',
-      saveAs: { filename -> filename.equals('versions.txt') || filename.equals('bwa.log') ? null : filename }
+      saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
     ]
-    ext.when = {params.indexes.contains('bwa')}
+    ext.when = {'bwa' in aligners}
   }
   
   withName:'starIndex' {
@@ -70,7 +91,7 @@ process {
       mode: 'copy',
       saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
     ]
-    ext.when = {params.indexes.contains('star')}
+    ext.when = {'star' in aligners}
   }
 
   withName:'bowtie2Index' {
@@ -79,35 +100,35 @@ process {
       mode: 'copy',
       saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
     ]
-    ext.when = {params.indexes.contains('bowtie2')}
+    ext.when = {'bowtie2' in aligners}
   }
 
-  withName:'makeHisat2Splicesites|hisat2Index' {
+  withName:"hisat2IndexFlow*" {
     publishDir = [
       path: { "${params.outDir}/indexes/" },
       mode: 'copy',
       saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
     ]
-    ext.when = {params.indexes.contains('hisat2')}
+    ext.when = {'hisat2' in aligners}
   }
 
-  withName:'cellrangerMkGtf|cellrangerMkRef' {
-    beforeScript = "export PATH=${params.cellRangerPath}:$PATH"
+  withName:"cellrangerIndexFlow*" {
+    //beforeScript = "export PATH=${params.cellRangerPath}:$PATH"
     publishDir = [
       path: { "${params.outDir}/indexes/" },
       mode: 'copy',
       saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
     ]
-    ext.when = {params.indexes.contains('cellranger')}
+    ext.when = {'cellranger' in aligners}
   }
 
-  withName:'kallistoCorrectFasta|kallistoIndex' {
+  withName:"kallistoIndexFlow*" {
     publishDir = [
       path: { "${params.outDir}/indexes/" },
       mode: 'copy',
       saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
     ]
-    ext.when = {params.indexes.contains('kallisto')}
+    ext.when = {'kallisto' in aligners}
   }
 
   withName:'salmonIndex' {
@@ -116,7 +137,6 @@ process {
       mode: 'copy',
       saveAs: { filename -> filename.equals('versions.txt') ? null : filename }
     ]
-    ext.when = {params.indexes.contains('salmon')}
+    ext.when = {'salmon' in aligners}
   }
-
 }

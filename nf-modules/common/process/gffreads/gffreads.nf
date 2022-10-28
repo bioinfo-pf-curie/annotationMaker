@@ -23,6 +23,6 @@ process gffreads {
   def args = task.ext.args ?: ''
   def prefix = task.ext.prefix ?: "${gff.baseName}"  
   """
-  gffread $gff --keep-exon-attrs -F -T -o ${prefix}.gtf
+  gffread $gff $args -o ${prefix}.gtf
   """
 }

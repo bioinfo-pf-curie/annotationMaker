@@ -4,16 +4,16 @@ process gtf2genes {
   label 'medMem'
 
   input:
-  path(gtf) from chGtfGene.concat(chGtfReducedGene)
+  path(gtf)
 
   output:
-  path("*_gene.bed") into chGeneBed
+  path("*_gene.bed"), emit: bed
 
   when:
   task.ext.when == null || task.ext.when
 
   script:
-  def prefix = task.ext.prefix ?: ${gtf.baseName}
+  def prefix = task.ext.prefix ?: "${gtf.baseName}"
   """
   extractGeneFromGTF.r ${gtf} ${prefix}_gene.bed
   sort -k1,1V -k2,2n ${prefix}_gene.bed > ${prefix}_gene_sorted.bed

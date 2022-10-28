@@ -227,6 +227,7 @@ workflowSummaryCh = NFTools.summarize(summary, workflow, params)
 
 // Workflows
 include { fastaProcessingFlow } from './nf-modules/local/subworkflow/fastaProcessing'
+include { gtfProcessingFlow } from './nf-modules/local/subworkflow/gtfProcessing'
 include { hisat2IndexFlow } from './nf-modules/local/subworkflow/hisat2Index' 
 include { cellrangerIndexFlow } from './nf-modules/local/subworkflow/cellrangerIndex'
 include { kallistoIndexFlow } from './nf-modules/local/subworkflow/kallistoIndex'
@@ -330,12 +331,18 @@ workflow {
       chTrsFasta
     )
 
+    //**********************************
+    // Process GTF file
+
+    gtfProcessingFlow(
+      chGtf
+    )
+
     // subroutines
     //outputDocumentation(
     //  outputDocsCh,
     //  outputDocsImagesCh
     //)
-
 }
 
 workflow.onComplete {
