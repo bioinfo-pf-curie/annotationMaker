@@ -1,85 +1,73 @@
 #!/usr/bin/env nextflow
 
 /*
-Copyright Institut Curie 2020
+Copyright Institut Curie 2019-2022
 This software is a computer program whose purpose is to analyze high-throughput sequencing data.
 You can use, modify and/ or redistribute the software under the terms of license (see the LICENSE file for more details).
 The software is distributed in the hope that it will be useful, but "AS IS" WITHOUT ANY WARRANTY OF ANY KIND.
-Users are therefore encouraged to test the software's suitability as regards their requirements in conditions enabling the security of their systems and/or data.
+Users are therefore encouraged to test the software's suitability as regards their requirements in conditions enabling the security of their systems and/or data. 
 The fact that you are presently reading this means that you have had knowledge of the license and that you accept its terms.
-
-This script is based on the nf-core guidelines. See https://nf-co.re/ for more information
 */
-
 
 /*
 ========================================================================================
-                         AnnotationMaker
+                         ANNOTATION MAKER
 ========================================================================================
- AnnotationMaker Pipeline.
- #### Homepage / Documentation
- https://gitlab.curie.fr/data-analysis/annotationMaker
+Analysis Pipeline DSL2 template.
+https://patorjk.com/software/taag/
 ----------------------------------------------------------------------------------------
 */
 
+nextflow.enable.dsl=2
 
-def helpMessage() {
-    if ("${workflow.manifest.version}" =~ /dev/ ){
-       devMess = file("$baseDir/assets/devMessage.txt")
-       log.info devMess.text
-    }
+// Initialize lintedParams and paramsWithUsage
+NFTools.welcome(workflow, params)
 
-    log.info """
-    annotationMaker v${workflow.manifest.version}
-    ======================================================================
+// Use lintedParams as default params object
+paramsWithUsage = NFTools.readParamsFromJsonSettings("${projectDir}/parameters.settings.json")
+params.putAll(NFTools.lint(params, paramsWithUsage))
 
-    Usage:
-    nextflow run main.nf --genome 'hg19' -profile conda
-    nextflow run main.nf --fasta '*.fasta' --gtf '*.gtf' -profile conda
+// Run name
+customRunName = NFTools.checkRunName(workflow.runName, params.name)
 
-    Mandatory arguments:
-      --genome [str]                Reference genome name and annotations to use
-      --genomeAnnotationPath [dir]  Path to genome annotation folder
-      -profile [str]                Configuration profile to use. test / conda / toolsPath / singularity / cluster (see below)
-
-    Optional arguments: If --genome is not specified
-      --fasta [file]                Path to input data (must be surrounded with quotes)
-      --gtf [file]                  Path to GTF file with gene annotation
-      --gff [file]                  Path to GFF file with gene annotation
-
-    Optional arguments:
-      --build [str]                 Build name to use for genome index
-      --indexes [file]              List of indexes to build. Available: all,bwa,star,bowtie2,hisat2,cellranger,kallisto,salmon,none. Default: all
-
-    Other options:
-      --starVersion                 Specify the STAR version to use. Available: 2.6.1b, 2.7.6a, 2.7.8a
-      --cellRangerPath              Path to cellRanger binary
-      --skipGtfProcessing [bool]    Skip the GTF file processing
-      --outDir [file]               The output directory where the results will be saved
-      -w/--work-dir [file]          The temporary directory where intermediate data will be saved
-      -name [str]                   Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
-
-    =======================================================
-    Available Profiles
-      -profile test                 Run the test dataset
-      -profile conda                Build a new conda environment before running the pipeline. Use `--condaCacheDir` to define the conda cache path
-      -profile multiconda           Build a new conda environment per process before running the pipeline. Use `--condaCacheDir` to define the conda cache path
-      -profile path                 Use the installation path defined for all tools. Use `--globalPath` to define the insallation path
-      -profile multipath            Use the installation paths defined for each tool. Use `--globalPath` to define the insallation path
-      -profile docker               Use the Docker images for each process
-      -profile singularity          Use the Singularity images for each process. Use `--singularityPath` to define the insallation path
-      -profile cluster              Run the workflow on the cluster, instead of locally
-    """.stripIndent()
-}
+// Custom functions/variables
+mqcReport = []
+include {checkAlignmentPercent} from './lib/functions'
 
 /*
- * SET UP CONFIGURATION VARIABLES
- */
+===================================
+  SET UP CONFIGURATION VARIABLES
+===================================
+*/
 
-// Show help emssage
-if (params.help){
-    helpMessage()
-    exit 0
+// Genome-based variables
+if (!params.genome){
+  exit 1, "No genome provided. The --genome option is mandatory"
+}
+
+if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
+  exit 1, "The provided genome '${params.genome}' is not available in the genomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
+}
+
+// Initialize variable from the genome.conf file
+//params.bowtie2Index = NFTools.getGenomeAttribute(params, 'bowtie2')
+
+// Stage config files
+outputDocsCh = Channel.fromPath("$projectDir/docs/output.md")
+//outputDocsImagesCh = file("$projectDir/docs/images/", checkIfExists: true)
+
+/*
+==========================
+ VALIDATE INPUTS
+==========================
+*/
+
+if (params.starVersion != "2.7.8a" && params.starVersion != "2.7.6a" && params.starVersion != "2.6.1b"){
+  exit 1, "The provided STAR version is not available. Use either 2.6.1b, 2.7.6a or 2.7.8a"
+}
+
+if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
+   exit 1, "The provided genome '${params.genome}' is not available in the genomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
 }
 
 def defineAligners() {
@@ -92,10 +80,6 @@ def defineAligners() {
         'kallisto',
 	'salmon',
         'none']
-}
-
-if (params.starVersion != "2.7.8a" && params.starVersion != "2.7.6a" && params.starVersion != "2.6.1b"){
-  exit 1, "The provided STAR version is not available. Use either 2.6.1b, 2.7.6a or 2.7.8a"
 }
 
 // Compare each parameter with a list of parameters
@@ -112,37 +96,31 @@ def checkParameterList(list, realList) {
 }
 
 alignersList = defineAligners()
-aligners = params.indexes || params.indexes == 'none' ? params.indexes == 'all' ? alignersList : params.indexes.split(',').collect{it.trim().toLowerCase()} : []
+def aligners = params.indexes || params.indexes == 'none' ? params.indexes == 'all' ? alignersList : params.indexes.split(',').collect{it.trim().toLowerCase()} : []
 if (!checkParameterList(aligners, alignersList)) exit 1, 'Unknown Aligner(s), see --help for more information'
 
 
+
 /*
- * CHANNELS
- */
+==========================
+ BUILD CHANNELS
+==========================
+*/
 
 // Reference Genome
-if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
-   exit 1, "The provided genome '${params.genome}' is not available in the genomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
-}
-wasFastaUrl=false
+chFasta = Channel.empty()
+chFastaURL = Channel.empty()
+wasFastaURL = false
 if (params.fasta){
-  Channel.fromPath("${params.fasta}")
-    .ifEmpty { exit 1, "Reference Genome not found: ${params.fasta}" }
-    .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaSalmon }
-  chFastaLink = Channel.empty()
+  chFasta = Channel.fromPath("${params.fasta}").ifEmpty { exit 1, "Reference Genome not found: ${params.fasta}" }
 }else if (params.genome){
   fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : false
   if (fasta){
     if (fasta.startsWith("http") || fasta.startsWith("ftp")){
-      wasFastaUrl=true
-      Channel.from(fasta)
-        .ifEmpty { exit 1, "Reference Genome not found: ${fasta}" }
-        .set { chFastaLink }
+      chFastaURL = Channel.from(fasta)
+      wasFastaURL = true
     }else{
-      Channel.fromPath(fasta)
-        .ifEmpty { exit 1, "Reference Genome not found: ${fasta}" }
-        .into { chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaSalmon }
-      chFastaLink = Channel.empty()
+      chFasta = Channel.fromPath(fasta).ifEmpty { exit 1, "Reference Genome not found: ${fasta}" }
     }
   }else{
     exit 1, "Fasta file not found for ${params.genome} : ${fasta}"
@@ -150,92 +128,61 @@ if (params.fasta){
 }
 
 // Transcriptome
-wasTrsUrl=false
+chTrsFasta = Channel.empty()
+chTrsURL = Channel.empty()
+wasTrsURL = false
 if (params.transcripts){
-  Channel.fromPath("${params.transcripts}")
-    .ifEmpty { exit 1, "Reference Genome not found: ${params.transcripts}" }
-    .into { chTranscriptsSalmon; chTranscriptsKallisto }
-  chTrsLink = Channel.empty()
+  chTrsFasta = Channel.fromPath("${params.transcripts}").ifEmpty { exit 1, "Reference Genome not found: ${params.transcripts}" }
 }else if (params.genome){
   transcriptome = params.genome ? params.genomes[ params.genome ].transcripts ?: false : false
   if (transcriptome){
     if (transcriptome.startsWith("http") || transcriptome.startsWith("ftp")){
-      wasTrsUrl=true
-      Channel.from(transcriptome)
-        .ifEmpty { exit 1, "Reference annotation not found: ${transcriptome}" }
-        .set { chTrsLink }
+      wasTrsURL = true
+      chTrsURL = Channel.from(transcriptome)
     }else{
-      Channel
-        .fromPath(transcriptome)
-        .ifEmpty { exit 1, "Reference annotation file not found: ${transcriptome}" }
-        .into { chTranscriptsSalmon; chTranscriptsKallisto }
+      chTrsFasta = Channel.fromPath(transcriptome).ifEmpty { exit 1, "Reference annotation file not found: ${transcriptome}" }
     }
   }else{
-    log.warn("No transcripts file detected for ${params.genome}") 
-    Channel.empty().into{ chTrsLink; chTranscriptsSalmon; chTranscriptsKallisto }
+    log.warn("No transcripts file detected for ${params.genome}")
   }
-}else{
-  Channel.empty().into{ chTrsLink; chTranscriptsSalmon; chTranscriptsKallisto }
 }
 
 // GTF
-wasGtfUrl=false
-wasGffUrl=false
 gff=false
 gtf=false
+chGtf = Channel.empty()
+chGff = Channel.empty()
+chGtfURL = Channel.empty()
+chGffURL = Channel.empty()
+wasGtfURL = false
+wasGffURL = false
 if (params.gtf){
-  Channel
-    .fromPath(params.gtf)
-    .ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
-    .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene; chGtfCellranger }
-  Channel.empty().into{ chGff; chGtfLink; chGffLink }
+  chGtf = Channel.fromPath(params.gtf).ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
 }else if (params.gff){
-  Channel
-    .fromPath(params.gff)
-    .ifEmpty { exit 1, "GFF annotation file not found: ${params.gtf}" }
-    .set { chGff }
-  Channel.empty().into{ chGtf; chGtfLink; chGffLink }
+  chGff = Channel.fromPath(params.gff).ifEmpty { exit 1, "GFF annotation file not found: ${params.gtf}" }
 }else if (params.genome){
   gtf = params.genome ? params.genomes[ params.genome ].gtf ?: false : false
   gff = params.genome ? params.genomes[ params.genome ].gff ?: false : false
 
   if ( gtf && gff ){
     log.info "Both GTF and GFF have been provided: Using GTF."
-  }
-  if ( gtf ){
+  }else if ( gtf ){
     if (gtf.startsWith("http") || gtf.startsWith("ftp")){
-      wasGtfUrl=true
-      Channel.from(gtf)
-        .ifEmpty { exit 1, "GTF annotation not found: ${gtf}" }
-        .set { chGtfLink }
-      chGffLink = Channel.empty()
+      wasGtfURL = true
+      chGtfURL = Channel.from(gtf)
     }else{
-      Channel
-        .fromPath(gtf)
-        .ifEmpty { exit 1, "GTF annotation file not found: ${gtf}" }
-        .into { chGtf; chGtfHisat2Splicesites; chGtfHisat2Index; chGtfBed12; chGtfGene; chGtfCellranger }
-      Channel.empty().into{ chGtfLink; chGffLink }
+      chGtf = Channel.fromPath(gtf).ifEmpty { exit 1, "GTF annotation file not found: ${gtf}" }
     }
-  }else if (gff){
+  }else if ( gff ){
     if ( gff.startsWith("http") || gff.startsWith("ftp")){
-      wasGffUrl=true
-      Channel.from(gff)
-        .ifEmpty { exit 1, "Reference annotation not found: ${gff}" }
-        .set { chGffLink }
-      chGtfLink = Channel.empty()
+      wasGffURL = true
+      chGffURL = Channel.from(gff)
     }else{
-      Channel
-        .fromPath(gff)
-        .ifEmpty { exit 1, "GFF annotation file not found: ${gff}" }
-        .set { chGff }
-      Channel.empty().into{ chGtfLink; chGffLink }
+      chGff = Channel.fromPath(gff).ifEmpty { exit 1, "GFF annotation file not found: ${gff}" }
     }
   }else{
     log.warn("No GTF/GFF information detected for ${params.genome}")
-    Channel.empty().into{ chGff; chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink; chGtfCellranger }
   }
-}else{
-  Channel.empty().into{ chGtf; chGtfBed12; chGtfGene; chGtfHisat2Splicesites; chGtfHisat2Index; chGffLink; chGtfLink; chGtfCellranger }
 }
 
 if ( params.build ){
@@ -246,684 +193,151 @@ if ( params.build ){
   fafile = file(params.fasta)
   build = fafile.baseName - ~/(\.fa)?(\.fasta)?(\.gz)?$/
 }
-
-// Header log info
-if ("${workflow.manifest.version}" =~ /dev/ ){
-   devMess = file("$baseDir/assets/devMessage.txt")
-   log.info devMess.text
-}
-
-log.info """=======================================================
-
-Annotation Maker workflow v${workflow.manifest.version}
-======================================================="""
-def summary = [:]
-summary['Command Line'] = workflow.commandLine
-summary['Build']          = build
-summary['Fasta']          = params.fasta ?: params.genome ? fasta : ""
-summary['Transcripts']    = params.transcripts ?: params.genome ? transcriptome : "false"
-summary['Gtf']            = params.gtf ?: params.genome ? gtf : "false"
-summary['Gff']            = params.gff ?: params.genome ? gff : "false"
-summary['Indexes']        = aligners
-summary['Max Memory']     = params.maxMemory
-summary['Max CPUs']       = params.maxCpus
-summary['Max Time']       = params.maxTime
-summary['Current home']   = "$HOME"
-summary['Current user']   = "$USER"
-summary['Current path']   = "$PWD"
-summary['Working dir']    = workflow.workDir
-summary['Output dir']     = params.outDir
-summary['Config Profile'] = workflow.profile
-
-log.info summary.collect { k,v -> "${k.padRight(15)}: $v" }.join("\n")
-log.info "========================================="
+chBuild = Channel.of(build)
 
 /*
- * DOWNLOAD
- */
+===========================
+   SUMMARY
+===========================
+*/
 
-process getFasta {
-  label 'unix'
-  label 'lowCpu'
-  label 'lowMem'
+summary = [
+  'Pipeline Release': workflow.revision ?: null,
+  'Build': build,
+  'Fasta' : params.fasta ?: params.genome ? fasta : "",
+  'Transcripts' : params.transcripts ?: params.genome ? transcriptome : null,
+  'Gtf' : params.gtf ?: params.genome ? gtf : null,
+  'Gff' : params.gff ?: params.genome ? gff : null,
+  'Indexes' : aligners,
+  'Max Resources': "${params.maxMemory} memory, ${params.maxCpus} cpus, ${params.maxTime} time per job",
+  'Container': workflow.containerEngine && workflow.container ? "${workflow.containerEngine} - ${workflow.container}" : null,
+  'Profile' : workflow.profile,
+  'OutDir' : params.outDir,
+  'WorkDir': workflow.workDir,
+  'CommandLine': workflow.commandLine
+].findAll{ it.value != null }
 
-  publishDir "${params.outDir}/genome", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  input:
-  val(url) from chFastaLink
-
-  output:
-  file("*.{fa,fasta}") into chFastaURL
-
-  script:
-  if (url.endsWith(".tar.gz")){
-  """
-  wget --no-check-certificate ${url} -O chromFa.tar.gz
-
-  mkdir ./tmp
-  tar zxvf chromFa.tar.gz -C ./tmp
-  for i in \$(find tmp/ -name "*.fa" | grep -v "_" | sort -V); do cat \$i >> ${build}.fa; done
-  for i in \$(find tmp/ -name "*.fa" | grep "_" | sort -V); do cat \$i >> ${build}.fa; done
-  rm -rf ./tmp
-  """
-  }else if (url.endsWith(".gz")){
-  """
-  wget --no-check-certificate ${url}
-  gunzip *.gz
-  """
-  }else{
-  """
-  wget --no-check-certificate ${url}
-  """
-  }
-}
-
-process getTranscriptome {
-  label 'unix'
-  label 'lowCpu'
-  label 'lowMem'
-
-  publishDir "${params.outDir}/gtf", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  input:
-  val(url) from chTrsLink
-
-  output:
-  file("*.{fa,fasta}") into chTrsURL
-
-  script:
-  if (url.endsWith(".gz")){
-  """
-  wget --no-check-certificate ${url}
-  gunzip *.gz
-  """
-  }else{
-  """
-  wget --no-check-certificate ${url}
-  """
-  }
-}
-
-process getAnnotation {
-  label 'unix'
-  label 'lowCpu'
-  label 'lowMem'
-
-  publishDir "${params.outDir}/gtf", mode: 'copy'
-
-  input:
-  val(url) from chGffLink.concat(chGtfLink).dump(tag:'annot')
-
-  output:
-  file("*.{gtf,gff,gff3}") into chAnnotURL
-
-  when:
-  !params.skipGtfProcessing
-
-  script:
-  if (url.endsWith(".gz")){
-  """
-  wget --no-check-certificate ${url}
-  gunzip *.gz
-  """
-  }else{
-  """
-  wget --no-check-certificate ${url}
-  """
-  }
-}
-
-if (wasFastaUrl){
-  chFastaURL.into{chFasta; chFastaBwa; chFastaStar; chFastaBowtie2; chFastaHisat2; chFastaCellranger; chFastaKallisto; chFastaSalmon}
-}
-if (wasTrsUrl){
-  chTrsURL.into{chTranscriptsSalmon; chTranscriptsKallisto}
-}
-if (wasGtfUrl){
-  chAnnotURL.into{chGtfHisat2Splicesites; chGtfHisat2Index; chGtf; chGtfBed12; chGtfGene; chGtfCellranger}
-}else if (wasGffUrl){
-  chAnnotURL.set{chGff}
-}
-
-if ((params.gff || gff)  && (!params.gtf && !gtf)){
-  process convertGFFtoGTF {
-    label 'gffread'
-    label 'lowCpu'
-    label 'lowMem'
-
-    publishDir "${params.outDir}/gtf", mode: 'copy'
-
-    when:
-    !params.skipGtfProcessing
-
-    input:
-    file gff from chGff
-
-    output:
-    file "${gff.baseName}.gtf" into chGtfHisat2Splicesites, chGtfHisat2Index, chGtf, chGtfBed12, chGtfGene, chGtfCellranger
-
-    script:
-    """
-    gffread $gff --keep-exon-attrs -F -T -o ${gff.baseName}.gtf
-    """
-  }
-}
-
+workflowSummaryCh = NFTools.summarize(summary, workflow, params)
 
 /*
- * FASTA PROCESSING
- */
+==================================
+           INCLUDE
+==================================
+*/ 
 
-process indexFasta {
-  label 'samtools'
-  label 'lowCpu'
-  label 'lowMem'
+// Workflows
+include { fastaProcessingFlow } from './nf-modules/local/subworkflow/fastaProcessing'
+include { hisat2IndexFlow } from './nf-modules/local/subworkflow/hisat2Index' 
+include { cellrangerIndexFlow } from './nf-modules/local/subworkflow/cellrangerIndex'
+include { kallistoIndexFlow } from './nf-modules/local/subworkflow/kallistoIndex'
 
-  publishDir "${params.outDir}/genome", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  input:
-  file(fasta) from chFasta
-
-  output:
-  set file(fasta), file("*.fai") into chFastaDict, chFastaSize, chFastaEffgsize
-
-  script:
-  """
-  samtools faidx ${fasta}
-  """
-}
-
-process makeDict {
-  label 'picard'
-  label 'lowCpu'
-  label 'lowMem'
-
-  publishDir "${params.outDir}/genome", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  input:
-  set file(fasta), file(faidx) from chFastaDict
-
-  output:
-  file("*.dict") into chDict
-
-  script:
-  pfix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
-  """
-  picard CreateSequenceDictionary REFERENCE=${fasta} OUTPUT=${pfix}.dict
-  """
-}
-
-process makeChromSizes {
-  label 'unix'
-  label 'lowCpu'
-  label 'lowMem'
-
-  publishDir "${params.outDir}/genome", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  input:
-  set file(fasta), file(faidx) from chFastaSize
-
-  output:
-  file("*sizes") into (chChromSize, chChromSizeStar)
-
-  script:
-  """
-  cut -f1,2 ${faidx} > chrom_${build}.sizes
-  """
-}
-
-process effectiveGenomeSize {
-  label 'ucsctools'
-  label 'lowCpu'
-  label 'lowMem'
-
-  publishDir "${params.outDir}/genome", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  input:
-  set file(fasta), file(faidx) from chFastaEffgsize
-
-  output:
-  file("*effgsize") into chEffSize
-
-  script:
-  """
-  faSize ${fasta} > ${build}_fasize.log
-  awk -v genome=${build} 'NR==1{print genome"\t"\$5}' ${build}_fasize.log > ${build}.effgsize
-  """
-}
+// Processes
+include { getSoftwareVersions } from './nf-modules/common/process/utils/getSoftwareVersions'
+include { outputDocumentation } from './nf-modules/common/process/utils/outputDocumentation'
+include { getDataFromURL as getTranscriptome } from './nf-modules/common/process/custom/getDataFromURL'
+include { getDataFromURL as getAnnotation } from './nf-modules/common/process/custom/getDataFromURL'
+include { getFastaFromURL } from './nf-modules/common/process/custom/getFastaFromURL'
+include { gffreads } from './nf-modules/common/process/gffreads/gffreads'
+include { bowtie2Index } from './nf-modules/common/process/bowtie2/bowtie2Index'
+include { starIndex } from './nf-modules/common/process/star/starIndex'
+include { bwaIndex } from './nf-modules/common/process/bwa/bwaIndex'
+include { salmonIndex } from './nf-modules/common/process/salmon/salmonIndex'
 
 /*
- * PREPROCESSING - Build Index
- */
+=====================================
+            WORKFLOW 
+=====================================
+*/
 
-process makeBwaIndex {
-  label 'bwamem'
-  label 'medCpu'
-  label 'medMem'
+workflow {
+  versionsCh = Channel.empty()
 
-  publishDir "${params.outDir}/indexes/", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
+  main:
 
-  when:
-  'bwa' in aligners
+    //************************************
+    // Download
 
-  input:
-  file(fasta) from chFastaBwa
+    getFastaFromURL(
+      chFastaURL
+    )
+    chFasta = wasFastaURL ? getFastaFromURL.out.fasta : chFasta
+    
+    getTranscriptome(
+      chTrsURL,
+      Channel.of('fasta')
+    )
+    chTrsFasta = wasTrsURL ? getTranscriptome.out.output : chTrsFasta
 
-  output:
-  file "bwa" into chBwaIdx
+    getAnnotation(
+      chGffURL.concat(chGtfURL),
+      Channel.of('gtf,gff')
+    )
+    if (wasGtfURL){
+      chGtf = getAnnotation.out.output
+    }else if (wasGffUrl){
+      chGff = getAnnotation.out.output
+    }
 
-  script:
-  pfix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
-  """
-  mkdir bwa
-  bwa index -p bwa/${pfix} ${fasta} > bwa.log 2>&1
-  """
+    if ((params.gff || gff)  && (!params.gtf && !gtf)){
+      gffreads(
+        getAnnotation.out.output
+      )
+      chGtf = gffreads.out.gtf
+    }
+
+    //**********************************
+    // Fasta processing
+
+    fastaProcessingFlow(
+      chFasta,
+      chBuild
+    )
+
+    //**********************************
+    // Generate genome indexes
+
+    bwaIndex(
+      chFasta
+    )
+
+    starIndex(
+      chFasta,
+      fastaProcessingFlow.out.chromSizes,
+      Channel.value([])
+    )
+
+    bowtie2Index(
+      chFasta
+    )
+
+    hisat2IndexFlow(
+      chFasta,
+      chGtf
+    )
+
+    cellrangerIndexFlow(
+      chFasta,
+      chGtf,
+      chBuild
+    )
+
+    kallistoIndexFlow(
+      chTrsFasta
+    )
+
+    salmonIndex(
+      chFasta,
+      chTrsFasta
+    )
+
+    // subroutines
+    //outputDocumentation(
+    //  outputDocsCh,
+    //  outputDocsImagesCh
+    //)
+
 }
-
-process makeStarIndex {
-  label 'star'
-  label 'medCpu'
-  label 'highMem'
-
-  publishDir "${params.outDir}/indexes/", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  when:
-  'star' in aligners
-
-  input:
-  file(fasta) from chFastaStar
-  file(chrSize) from chChromSizeStar
-
-  output:
-  file "STAR*" into chStarIdx
-
-  script:
-  """
-  odir=\$(STAR --version | cut -d_ -f2)
-  mkdir -p STAR_\${odir}
-  chrBinNbits=\$(awk -F"\t" '{s+=\$2;l+=1}END{p=log(s/l)/log(2); printf("%.0f", (p<18 ? p:18))}' ${chrSize})
-  STAR --runMode genomeGenerate --limitGenomeGenerateRAM 33524399488 --genomeChrBinNbits \${chrBinNbits} --runThreadN ${task.cpus} --genomeDir STAR_\${odir} --genomeFastaFiles $fasta
-  """
-}
-
-process makeBowtie2Index {
-  label 'bowtie2'
-  label 'medCpu'
-  label 'highMem'
-
-  publishDir "${params.outDir}/indexes/", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  when:
-  'bowtie2' in aligners
-
-  input:
-  file(fasta) from chFastaBowtie2
-
-  output:
-  file("bowtie2") into chBowtie2Idx
-
-  script:
-  pfix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
-  """
-  mkdir -p bowtie2
-  bowtie2-build ${fasta} bowtie2/${pfix}
-  """
-}
-
-process makeHisat2Splicesites {
-  label 'hisat2'
-  label 'lowCpu'
-  label 'medMem'
-
-  publishDir "${params.outDir}/indexes/hisat2", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  when:
-  'hisat2' in aligners
-
-  input:
-  file gtf from chGtfHisat2Splicesites.collect()
-
-  output:
-  file "${gtf.baseName}.hisat2_splice_sites.txt" into indexingSplicesites
-
-  script:
-  """
-  mkdir -p hisat2
-  hisat2_extract_splice_sites.py $gtf > ${gtf.baseName}.hisat2_splice_sites.txt
-  """
-}
-
-process makeHisat2Index {
-  label 'hisat2'
-  label 'highCpu'
-  label 'hugeMem'
-
-  publishDir "${params.outDir}/indexes/", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  when:
-  'hisat2' in aligners
-
-  input:
-  file fasta from chFastaHisat2
-  file indexing_splicesites from indexingSplicesites.collect()
-  file gtf from chGtfHisat2Index.collect()
-
-  output:
-  file("hisat2") into chHisat2Idx
-
-  script:
-  pfix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
-  """
-  mkdir -p hisat2
-  hisat2_extract_exons.py $gtf > ${gtf.baseName}.hisat2_exons.txt
-  hisat2-build -p ${task.cpus} --ss $indexing_splicesites --exon ${gtf.baseName}.hisat2_exons.txt $fasta hisat2/${pfix}
-  """
-}
-
-process cellRangerFilterGtf {
-  label 'unix'
-  label 'medCpu'
-  label 'medMem'
-
-  when:
-  'cellranger' in aligners
-
-  input:
-  file gtf from chGtfCellranger
-
-  output:
-  file("cellranger_filtered.gtf") into chFilteredGtfCellranger
-
-  script:
-  """
-  cellranger mkgtf $gtf cellranger_filtered.gtf \
-    --attribute=gene_biotype:protein_coding --attribute=gene_biotype:lincRNA \
-    --attribute=gene_biotype:antisense --attribute=gene_biotype:IG_LV_gene \
-    --attribute=gene_biotype:IG_V_gene --attribute=gene_biotype:IG_V_pseudogene \
-    --attribute=gene_biotype:IG_D_gene --attribute=gene_biotype:IG_J_gene \
-    --attribute=gene_biotype:IG_J_pseudogene --attribute=gene_biotype:IG_C_gene \
-    --attribute=gene_biotype:IG_C_pseudogene --attribute=gene_biotype:TR_V_gene \
-    --attribute=gene_biotype:TR_V_pseudogene --attribute=gene_biotype:TR_D_gene \
-    --attribute=gene_biotype:TR_J_gene --attribute=gene_biotype:TR_J_pseudogene \
-    --attribute=gene_biotype:TR_C_gene
-  """
-}
-
-process makeCellRangerIndex {
-  label 'unix'
-  label 'highCpu'
-  label 'extraMem'
-
-  publishDir "${params.outDir}/indexes/", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  when:
-  'cellranger' in aligners
-
-  input:
-  file fasta from chFastaCellranger
-  file filteredGtf from chFilteredGtfCellranger
-
-  output:
-  file("cellranger") into chCellrangerIdx
-
-  script:
-  (full, mem) = (task.memory =~ /(\d+)\s*[a-z]*/)[0]
-  """
-  cellranger mkref \
-    --genome=cellranger \
-    --fasta=$fasta \
-    --genes=$filteredGtf \
-    --nthreads ${task.cpus} --memgb ${mem} --ref-version ${build}
-  """
-}
-
-process kallistoCorrectFasta {
-  label 'unix'
-  label 'medCpu'
-  label 'lowMem'
-
-  when:
-  'kallisto' in aligners
-
-  input:
-  file transcriptsFasta from chTranscriptsKallisto
-
-  output:
-  file("corTranscripts.fa") into chCorrectTranscriptsKallisto
-
-  script:
-  """
-  cat ${transcriptsFasta} | \
-  awk -F  "|" '{if(\$0 ~ /^>.*/){print \$1;} else {print \$0;}}' | \
-  sed 's/\\_mRNA//' | \
-  grep -vE  ".*_PAR_Y.*" > \
-  corTranscripts.fa
-  """
-}
-
-process makeKallistoIndex {
-  label 'kallisto'
-  label 'medCpu'
-  label 'highMem'
-
-  publishDir "${params.outDir}/indexes/", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  when:
-  'kallisto' in aligners
-
-  input:
-  file corrTranscrpitsFasta from chCorrectTranscriptsKallisto
-
-  output:
-  file("kallisto_${suffix}") into chKallistoIdx
-
-  script:
-  suffix=corrTranscrpitsFasta.toString() - ~/([_.])?(corrTranscripts.fa)?(.gz)?$/
-  """
-  mkdir -p kallisto_${suffix}
-  kallisto index -i kallisto_${suffix}/transcriptome.idx $corrTranscrpitsFasta
-  """
-}
-
-
-process makeSalmonIndex {
-  label 'salmon'
-  label 'medCpu'
-  label 'highMem'
-
-  publishDir "${params.outDir}/indexes/", mode: 'copy',
-    saveAs: {filename -> if (filename.indexOf(".log") > 0) "logs/$filename" else filename}
-
-  when:
-  'salmon' in aligners
-
-  input:
-  file genomeFasta from chFastaSalmon
-  file transcrpitsFasta from chTranscriptsSalmon
-
-  output:
-  file("salmon_${suffix}/") into chSalmonIdx
-
-  script:
-  suffix=transcrpitsFasta.toString() - ~/([_.])?(transcripts.fa)?(.gz)?$/
-  """
-  grep "^>" ${genomeFasta} | cut -d " " -f 1 > decoys.txt
-  sed -i.bak -e 's/>//g' decoys.txt
-  cat ${transcrpitsFasta} ${genomeFasta} > gentrome.fa
-
-  salmon index \
-    -t gentrome.fa \
-    --decoy decoys.txt \
-    -i salmon_${suffix} \
-    -p ${task.cpus} \
-    --gencode
-
-  mv gentrome.fa salmon_${suffix}/
-  gzip salmon_${suffix}/*.fa
-  mv decoys.txt salmon_${suffix}/
-  """
-}
-
-/***********************
- * GTF Annotation
- */
-
-// Extract protein-coding genes only
-process reduceGtf {
-  label 'unix'
-  label 'lowCpu'
-  label 'lowMem'
-
-  publishDir "${params.outDir}/gtf", mode: 'copy',
-
-  when:
-  !params.skipGtfProcessing
-
-  input:
-  file(gtf) from chGtf
-
-  output:
-  file("*proteinCoding.gtf") optional true into (chGtfReducedBed12, chGtfReducedGene)
-
-  script:
-  """
-  nbPC=\$(head -n 1000 | awk '\$0~"gene_biotype \\"protein_coding\\"" || \$0~"gene_type \\"protein_coding\\"" {print}' ${gtf} | wc -l)
-  if [[ \$nbPC -gt 0 ]]; then
-    awk '\$0~"gene_biotype \\"protein_coding\\"" || \$0~"gene_type \\"protein_coding\\"" {print}' ${gtf} > ${gtf.baseName}_proteinCoding.gtf
-  fi
-  """
-}
-
-// bed12 file are transcripts-based annotation files
-process gtf2bed12 {
-  label 'ucsctools'
-  label 'lowCpu'
-  label 'lowMem'
-
-  publishDir "${params.outDir}/gtf", mode: 'copy',
-
-  when:
-  !params.skipGtfProcessing
-
-  input:
-  file(gtf) from chGtfBed12.concat(chGtfReducedBed12)
-
-  output:
-  file("*.bed12") into chBed12
-
-  script:
-  """
-  gtfToGenePred ${params.genepredOpts} ${gtf} ${gtf.baseName}.genepred 2> genepred.log
-  genePredToBed ${gtf.baseName}.genepred ${gtf.baseName}.bed12
-  """
-}
-
-// Extract gene coordinates
-process gtf2genes {
-  label 'r'
-  label 'lowCpu'
-  label 'medMem'
-
-  publishDir "${params.outDir}/gtf", mode: 'copy',
-
-  when:
-  !params.skipGtfProcessing
-
-  input:
-  file(gtf) from chGtfGene.concat(chGtfReducedGene)
-
-  output:
-  file("*_gene.bed") into chGeneBed
-
-  script:
-  """
-  extractGeneFromGTF.r ${gtf} ${gtf.baseName}_gene.bed
-  sort -k1,1V -k2,2n ${gtf.baseName}_gene.bed > ${gtf.baseName}_gene_sorted.bed
-  mv ${gtf.baseName}_gene_sorted.bed ${gtf.baseName}_gene.bed
-  """
-}
-
-
-/*
- * Sub-routine
- */
 
 workflow.onComplete {
-
-    /*pipeline_report.html*/
-
-    def report_fields = [:]
-    report_fields['pipeline'] = workflow.manifest.name
-    report_fields['version'] = workflow.manifest.version
-    report_fields['runName'] = custom_runName ?: workflow.runName
-    report_fields['success'] = workflow.success
-    report_fields['dateComplete'] = workflow.complete
-    report_fields['duration'] = workflow.duration
-    report_fields['exitStatus'] = workflow.exitStatus
-    report_fields['errorMessage'] = (workflow.errorMessage ?: 'None')
-    report_fields['errorReport'] = (workflow.errorReport ?: 'None')
-    report_fields['commandLine'] = workflow.commandLine
-    report_fields['projectDir'] = workflow.projectDir
-    report_fields['summary'] = summary
-    report_fields['summary']['Date Started'] = workflow.start
-    report_fields['summary']['Date Completed'] = workflow.complete
-    report_fields['summary']['Pipeline script file path'] = workflow.scriptFile
-    report_fields['summary']['Pipeline script hash ID'] = workflow.scriptId
-    if(workflow.repository) report_fields['summary']['Pipeline repository Git URL'] = workflow.repository
-    if(workflow.commitId) report_fields['summary']['Pipeline repository Git Commit'] = workflow.commitId
-    if(workflow.revision) report_fields['summary']['Pipeline Git branch/tag'] = workflow.revision
-
-    // Render the TXT template
-    def engine = new groovy.text.GStringTemplateEngine()
-    def tf = new File("$baseDir/assets/onCompleteTemplate.txt")
-    def txt_template = engine.createTemplate(tf).make(report_fields)
-    def report_txt = txt_template.toString()
-
-    // Render the HTML template
-    def hf = new File("$baseDir/assets/onCompleteTemplate.html")
-    def html_template = engine.createTemplate(hf).make(report_fields)
-    def report_html = html_template.toString()
-
-    // Write summary e-mail HTML to a file
-    def output_d = new File( "${params.summaryDir}/" )
-    if( !output_d.exists() ) {
-      output_d.mkdirs()
-    }
-    def output_hf = new File( output_d, "pipelineReport.html" )
-    output_hf.withWriter { w -> w << report_html }
-    def output_tf = new File( output_d, "pipelineReport.txt" )
-    output_tf.withWriter { w -> w << report_txt }
-
-    /*oncomplete file*/
-    File woc = new File("${params.outDir}/workflowOnComplete.txt")
-    Map endSummary = [:]
-    endSummary['Completed on'] = workflow.complete
-    endSummary['Duration']     = workflow.duration
-    endSummary['Success']      = workflow.success
-    endSummary['exit status']  = workflow.exitStatus
-    endSummary['Error report'] = workflow.errorReport ?: '-'
-    String endWfSummary = endSummary.collect { k,v -> "${k.padRight(30, '.')}: $v" }.join("\n")
-    println endWfSummary
-    String execInfo = "Execution summary\n${endWfSummary}\n"
-    woc.write(execInfo)
-
-    /*final logs*/
-    if(workflow.success){
-      log.info "[annotationMaker] Pipeline Complete"
-    }else{
-      log.info "[annotationMaker] FAILED: $workflow.runName"
-    }
+  NFTools.makeReports(workflow, params, summary, customRunName, mqcReport)
 }
