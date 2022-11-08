@@ -73,7 +73,7 @@ if (params.genomes && params.genome && !params.genomes.containsKey(params.genome
 def defineAligners() {
   return [
         'bwa',
-        'bwa2',
+        'bwamem2',
         'dragmap',
         'star',
         'bowtie2',
@@ -244,8 +244,8 @@ include { gffreads } from './nf-modules/common/process/gffreads/gffreads'
 include { bowtie2Index } from './nf-modules/common/process/bowtie2/bowtie2Index'
 include { starIndex } from './nf-modules/common/process/star/starIndex'
 include { bwaIndex } from './nf-modules/common/process/bwa/bwaIndex'
-include { bwa2Index } from './nf-modules/common/process/bwa2/bwa2Index'
-include { dragmapIndex } from './nf-modules/common/process/dragmap/bwa2Index'
+include { bwamem2Index } from './nf-modules/common/process/bwamem2/bwamem2Index'
+include { dragmapIndex } from './nf-modules/common/process/dragmap/dragmapIndex'
 include { salmonIndex } from './nf-modules/common/process/salmon/salmonIndex'
 
 /*
@@ -305,7 +305,7 @@ workflow {
       chFasta
     )
 
-    bwa2Index(
+    bwamem2Index(
       chFasta
     )
     
