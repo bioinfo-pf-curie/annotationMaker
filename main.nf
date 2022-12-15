@@ -80,7 +80,7 @@ def defineAligners() {
         'hisat2',
         'cellranger',
         'kallisto',
-	'salmon',
+	      'salmon',
         'none']
 }
 
@@ -263,19 +263,20 @@ workflow {
     // Download
 
     getFastaFromURL(
-      chFastaURL
+      chFastaURL,
+      chBuild
     )
     chFasta = wasFastaURL ? getFastaFromURL.out.fasta : chFasta
     
     getTranscriptome(
       chTrsURL,
-      Channel.of('fasta')
+      Channel.of('fa')
     )
     chTrsFasta = wasTrsURL ? getTranscriptome.out.output : chTrsFasta
 
     getAnnotation(
       chGffURL.concat(chGtfURL),
-      Channel.of('gtf,gff')
+      Channel.of('gtf','gff')
     )
     if (wasGtfURL){
       chGtf = getAnnotation.out.output

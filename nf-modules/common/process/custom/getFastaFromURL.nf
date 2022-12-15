@@ -9,6 +9,7 @@ process getFastaFromURL {
 
   input:
   val(url)
+  val(build)
 
   output:
   path("*.{fa,fasta}"), emit: fasta

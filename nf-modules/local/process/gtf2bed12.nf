@@ -24,4 +24,3 @@ process gtf2bed12 {
   genePredToBed ${prefix}.genepred ${prefix}.bed12
   """
 }
-

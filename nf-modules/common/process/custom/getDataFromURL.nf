@@ -12,7 +12,7 @@ process getDataFromURL {
   val(extension)
 
   output:
-  path("*.{${extension}}"), emit: output
+  path("*.${extension}"), emit: output
 
   script:
   if (url.endsWith(".gz")){
