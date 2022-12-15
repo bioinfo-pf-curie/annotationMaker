@@ -80,7 +80,7 @@ def defineAligners() {
         'hisat2',
         'cellranger',
         'kallisto',
-	      'salmon',
+        'salmon',
         'none']
 }
 

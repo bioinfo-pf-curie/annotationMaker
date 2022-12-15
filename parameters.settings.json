@@ -1,32 +1,6 @@
 {
   "parameters": [
     {
-      "name": "reads",
-      "label": "Input files",
-      "usage": "Path to input data (must be surrounded with quotes)",
-      "type": "path",
-      "choices": [],
-      "nargs": "+",
-      "default_value": null,
-      "pattern": ".*\\*.*",
-      "render": "textfield",
-      "arity": 0,
-      "group": "Mandatory arguments"
-    },
-    {
-      "name": "samplePlan",
-      "label": "Input files",
-      "usage": "Path to sample plan (csv format) with raw reads (if `--reads` is not specified)",
-      "type": "path",
-      "choices": [],
-      "nargs": "+",
-      "default_value": null,
-      "pattern": ".*\\*.*",
-      "render": "textfield",
-      "arity": 0,
-      "group": "Mandatory arguments"
-    },
-    {
       "name": "profile",
       "label": "Configuration profile(s)",
       "usage": "Configuration profile to use. Can use multiple (comma separated).",
@@ -56,20 +30,6 @@
     },
 
     {
-      "name": "singleEnd",
-      "label": "Input files",
-      "usage": "For single-end input data",
-      "type": "boolean",
-      "nargs": 0,
-      "choices": [],
-      "default_value": false,
-      "pattern": "",
-      "render": "check-box",
-      "arity": 0,
-      "group": "Inputs"
-    },
-
-    {
       "name": "genomeAnnotationPath",
       "label": "Annotation path",
       "usage": "Path to genome annotations folder",
@@ -82,11 +42,101 @@
       "arity": 0,
       "group": "References"
     },
+    {
+      "name": "fasta",
+      "label": "Genome fasta",
+      "usage": "Path to genome fasta file",
+      "type": "path",
+      "choices": [],
+      "nargs": "+",
+      "default_value": null,
+      "pattern": ".*\\*.*",
+      "render": "textfield",
+      "arity": 0,
+      "group": "References"
+    },
+    {
+      "name": "gtf",
+      "label": "GTF path",
+      "usage": "Path to GTF annotation file",
+      "type": "path",
+      "choices": [],
+      "nargs": "+",
+      "default_value": null,
+      "pattern": ".*\\*.*",
+      "render": "textfield",
+      "arity": 0,
+      "group": "References"
+    },
+    {
+      "name": "gff",
+      "label": "GFF path",
+      "usage": "Path to GFF annotation file",
+      "type": "path",
+      "choices": [],
+      "nargs": "+",
+      "default_value": null,
+      "pattern": ".*\\*.*",
+      "render": "textfield",
+      "arity": 0,
+      "group": "References"
+    },
 
     {
-      "name": "skipFastqc",
-      "label": "Skip Fastqc",
-      "usage": "Disable Fastqc",
+      "name": "build",
+      "label": "Build name",
+      "usage": "Name of the genome build",
+      "type": "string",
+      "nargs": 1,
+      "choices": [],
+      "default_value": null,
+      "pattern": ".*",
+      "render": "textfield",
+      "arity": 0,
+      "group": "Indexes"
+    },
+    {
+      "name": "indexes",
+      "label": "Output directory",
+      "usage": "Genome indexes to generate",
+      "type": "string",
+      "nargs": "+",
+      "choices": [ "all", "bwa", "bwamem2", "dragmap", "star" , "bowtie2", "hisat2", "cellranger", "kallisto", "salmon", "none"],
+      "default_value": "all",
+      "render": "textfield",
+      "group": "Indexes"
+    },
+
+    {
+      "name": "starVersion",
+      "label": "Star version",
+      "usage": "Version of the STAR aligned to use",
+      "type": "string",
+      "nargs": "1",
+      "choices": ["2.7.6a", "2.7.8a"],
+      "default_value": "2.7.8a",
+      "pattern": ".*",
+      "render": "textfield",
+      "arity": 0,
+      "group": "Other options"
+    },
+    {
+      "name": "cellRangerPath",
+      "label": "cellRanger path",
+      "usage": "cellRanger path",
+      "type": "path",
+      "nargs": "1",
+      "choices": [],
+      "default_value": "",
+      "pattern": ".*",
+      "render": "textfield",
+      "arity": 0,
+      "group": "Other options"
+    },
+    {
+      "name": "skipGtfProcessing",
+      "label": "Skip GTF processing",
+      "usage": "Skip GTF processing steps",
       "type": "boolean",
       "nargs": 0,
       "choices": [],
@@ -94,22 +144,8 @@
       "pattern": "",
       "render": "check-box",
       "arity": 0,
-      "group": "Skip options"
+      "group": "Other options"
     },
-    {
-      "name": "skipMultiqc",
-      "label": "Skip MultiQC",
-      "usage": "Disable MultiQC",
-      "type": "boolean",
-      "nargs": 0,
-      "choices": [],
-      "default_value": false,
-      "pattern": "",
-      "render": "check-box",
-      "arity": 0,
-      "group": "Skip options"
-    },
-
     {
       "name": "outDir",
       "label": "Output directory",
@@ -120,45 +156,6 @@
       "default_value": null,
       "pattern": ".*",
       "render": "file",
-      "arity": 0,
-      "group": "Other options"
-    },
-    {
-      "name": "multiqcConfig",
-      "label": "MultiQC configuration file",
-      "usage": "Specify a custom config file for MultiQC",
-      "type": "path",
-      "nargs": 1,
-      "choices": [],
-      "default_value": null,
-      "pattern": ".*",
-      "render": "file",
-      "arity": 0,
-      "group": "Other options"
-    },
-    {
-      "name": "metadata",
-      "label": "MultiQC metadata file",
-      "usage": "Specify a custom metadata file for MultiQC",
-      "type": "path",
-      "nargs": 1,
-      "choices": [],
-      "default_value": null,
-      "pattern": ".*",
-      "render": "file",
-      "arity": 0,
-      "group": "Other options"
-    },
-    {
-      "name": "name",
-      "label": "Name for the pipeline run",
-      "usage": "Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic",
-      "type": "string",
-      "nargs": 1,
-      "choices": [],
-      "default_value": "25.MB",
-      "pattern": ".*",
-      "render": "textfield",
       "arity": 0,
       "group": "Other options"
     }
