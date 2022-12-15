@@ -23,8 +23,7 @@ process dragmapIndex{
   def prefix = task.ext.prefix ?: fasta.toString() - ~/(\.fa)?(\.fasta)?$/
   """
   mkdir -p dragmap
-  bwa-mem2 index -p bwa2/${prefix} ${fasta} > bwa2.log 2>&1
-  echo "bwa-mem2 "\$(bwa 2>&1 | grep Version | cut -d" " -f2) &> versions.txt
+  dragen-os --build-hash-table true --ht-reference ${fasta} --output-directory dragmap > dragmap.log 2>&1
+  echo "Dragmap "\$(dragen-os -V) &> versions.txt
   """
-// modifier commande
-}
+} 
