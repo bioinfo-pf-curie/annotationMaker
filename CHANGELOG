@@ -2,6 +2,7 @@
 version-2.0.0
 
 NEW FEATURES
+  - Add Callithrix Jacchus genome
   - Add Dragmap index support
   - Add Bwa-mem2 index support
   - DSL2 version
