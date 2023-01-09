@@ -7,6 +7,8 @@
 [![Singularity Container available](https://img.shields.io/badge/singularity-available-7E4C74.svg)](https://singularity.lbl.gov/)
 [![Docker Container available](https://img.shields.io/badge/docker-available-003399.svg)](https://www.docker.com/)
 
+[![DOI](https://zenodo.org/badge/375382480.svg)](https://zenodo.org/badge/latestdoi/375382480)
+
 ### Introduction
 
 The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. 
@@ -148,7 +150,12 @@ Sample ID | Sample Name | Path R1 .fastq file | [Path R2 .fastq file]
 
 #### Credits
 
-This pipeline has been written by the bioinformatics platform of the Institut Curie
+This pipeline has been written by the bioinformatics core facility of the Institut Curie.
+
+#### Citation
+
+If you use this pipeline for your project, please cite it using the following doi: [10.5281/zenodo.7515673](https://doi.org/10.5281/zenodo.7443721)  
+Do not hesitate to use the Zenodo doi corresponding to the version you used !
 
 #### Contacts
 
