@@ -154,7 +154,7 @@ This pipeline has been written by the bioinformatics core facility of the Instit
 
 #### Citation
 
-If you use this pipeline for your project, please cite it using the following doi: [10.5281/zenodo.7515673](https://doi.org/10.5281/zenodo.7443721)  
+If you use this pipeline for your project, please cite it using the following doi: [10.5281/zenodo.7515673](https://doi.org/10.5281/zenodo.7515673).  
 Do not hesitate to use the Zenodo doi corresponding to the version you used !
 
 #### Contacts
