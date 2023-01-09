@@ -3,9 +3,11 @@
 **Institut Curie - annotationMaker**
 
 [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A50.32.0-brightgreen.svg)](https://www.nextflow.io/)
-[![Install with](https://anaconda.org/anaconda/conda-build/badges/installer/conda.svg)](https://conda.anaconda.org/anaconda)
+[![Install with conda](https://img.shields.io/badge/install%20with-conda-brightgreen.svg)](https://conda.anaconda.org/anaconda)
 [![Singularity Container available](https://img.shields.io/badge/singularity-available-7E4C74.svg)](https://singularity.lbl.gov/)
-<!--[![Docker Container available](https://img.shields.io/badge/docker-available-003399.svg)](https://www.docker.com/)-->
+[![Docker Container available](https://img.shields.io/badge/docker-available-003399.svg)](https://www.docker.com/)
+
+[![DOI](https://zenodo.org/badge/375382480.svg)](https://zenodo.org/badge/latestdoi/375382480)
 
 ### Introduction
 
@@ -21,6 +23,8 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 3. Calculates the effective genome size as the sum of non 'N' base on the genome.
 4. Generates indexes for :
 - [`BWA`](http://bio-bwa.sourceforge.net/)
+- [`BWA-mem2`](https://github.com/bwa-mem2/bwa-mem2)
+- [`DRAGMAP`](https://github.com/Illumina/DRAGMAP)
 - [`Bowtie2`](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) 
 - [`STAR`](https://github.com/alexdobin/STAR)
 - [`hisat2`](http://ccb.jhu.edu/software/hisat2/index.shtml)
@@ -32,38 +36,45 @@ The goal of this pipeline is to generate annotation and indexes files in a stand
 ### Quick help
 
 ```bash
-N E X T F L O W  ~  version 20.01.0
-Launching `main.nf` [furious_volta] - revision: ca21e76c70
-======================================================================
-annotationMaker v1.3.0
-======================================================================
+N E X T F L O W  ~  version 21.10.6
+Launching `main.nf` [gloomy_khorana] - revision: 20613d4cd4
+------------------------------------------------------------------------
+                           _        _   _             __  __       _  
+                          | |      | | (_)           |  \/  |     | |
+    __ _ _ __  _ __   ___ | |_ __ _| |_ _  ___  _ __ | .  . | __ _| | _____ _ __ 
+   / _` | '_ \| '_ \ / _ \| __/ _` | __| |/ _ \| '_ \| |\/| |/ _` | |/ / _ \ '__|
+  | (_| | | | | | | | (_) | || (_| | |_| | (_) | | | | |  | | (_| |   <  __/ |   
+   \__,_|_| |_|_| |_|\___/ \__\__,_|\__|_|\___/|_| |_\_|  |_/\__,_|_|\_\___|_| 
 
+  v2.0.0
+------------------------------------------------------------------------
 Usage:
-nextflow run main.nf --genome 'hg19' -profile conda
-nextflow run main.nf --fasta '*.fasta' --gtf '*.gtf' -profile conda
+The typical command for running the pipeline is as follows:
 
-Mandatory arguments:
-  --genome [str]                Reference genome name and annotations to use
-  --genomeAnnotationPath [dir]  Path to genome annotation folder
-  -profile [str]                Configuration profile to use. test / conda / toolsPath / singularity / cluster (see below)
- 
-Optional arguments: If --genome is not specified
-  --fasta [file]                Path to input data (must be surrounded with quotes)
-  --gtf [file]                  Path to GTF file with gene annotation
-  --gff [file]                  Path to GFF file with gene annotation
-	  
-Optional arguments:
-  --build [str]                 Build name to use for genome index
-  --indexes [str]               List of indexes to build. Available: all,bwa,star,bowtie2,hisat2,cellranger,kallisto,salmon,none. Default: all
-		  
-Other options:
-  --starVersion                 Specify the STAR version to use. Available: 2.7.6a, 2.7.8a
-  --cellRangerPath              Path to cellRanger binary
-  --skipGtfProcessing [bool]    Skip the GTF file processing
-  --outDir [dir]                The output directory where the results will be saved
-  -w/--work-dir [dir]           The temporary directory where intermediate data will be saved
-  -name [str]                   Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
-				  
+nextflow run main.nf --profile STRING --genome STRING -profile PROFILES
+
+MANDATORY ARGUMENTS:
+
+--genome  STRING   Name of the reference genome.
+--profile STRING [conda, cluster, docker, multiconda, conda, path, multipath, singularity]  Configuration profile to use. Can use multiple (comma separated).
+
+REFERENCES:
+--fasta                PATH   Path to genome fasta file
+--genomeAnnotationPath PATH   Path to genome annotations folder
+--gff                  PATH   Path to GFF annotation file
+--gtf                  PATH   Path to GTF annotation file
+
+INDEXES:
+
+--build   STRING   Name of the genome build
+--indexes STRING [all, bwa, bwamem2, dragmap, star, bowtie2, hisat2, cellranger, kallisto, salmon, none]  Genome indexes to generate
+
+OTHER OPTIONS:
+
+--cellRangerPath    PATH   CellRanger path
+--outDir            PATH   The output directory where the results will be saved
+--skipGtfProcessing        Skip GTF processing steps
+--starVersion       STRING [2.7.6a, 2.7.8a]   Version of the STAR aligned to use
 			  
 =======================================================
 Available Profiles
@@ -93,17 +104,17 @@ nextflow run main.nf -profile test,multiconda
 ```
 echo "nextflow run main.nf --genome 'hg38' \
       -profile multiconda,cluster --condaCacheDir MY_CONDA_CACHE \
-      --outDir MY_OUTPUT_DIR -w MY_WORK_DIR" | qsub -N makeAnnot"
+      --outDir MY_OUTPUT_DIR -w MY_OUTPUT_DIR/work" | qsub -N makeAnnot"
 ```
 
 #### Generate a few indexes from already downloaded genome fasta file
 
 ```
-echo "nextflow run main.nf --genome mm39 \
+echo "nextflow run main.nf --genome 'mm39' \
       --starVersion 2.7.8a --indexes star,kallisto,salmon \
       --fasta GENOME_FASTA --skipGtfProcessing \
       -profile multiconda,cluster --condaCacheDir MY_CONDA_CACHE \
-      --outDir MY_OUTPUT_DIR -w MY_WORK_DIR -resume" | qsub -N hg19
+      --outDir MY_OUTPUT_DIR -w MY_OUTPUT_DIR/work -resume" | qsub -N hg19
 ```
 
 ### Defining the '-profile'
@@ -139,7 +150,12 @@ Sample ID | Sample Name | Path R1 .fastq file | [Path R2 .fastq file]
 
 #### Credits
 
-This pipeline has been written by the bioinformatics platform of the Institut Curie
+This pipeline has been written by the bioinformatics core facility of the Institut Curie.
+
+#### Citation
+
+If you use this pipeline for your project, please cite it using the following doi: [10.5281/zenodo.7515673](https://doi.org/10.5281/zenodo.7515673).  
+Do not hesitate to use the Zenodo doi corresponding to the version you used !
 
 #### Contacts
 

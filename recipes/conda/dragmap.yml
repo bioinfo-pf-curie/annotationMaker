@@ -1,0 +1,7 @@
+name: dragmap-1.2.1
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - bioconda::dragmap=1.2.1=hd4ca14e_0

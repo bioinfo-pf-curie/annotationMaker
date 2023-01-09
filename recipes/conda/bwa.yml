@@ -6,4 +6,3 @@ channels:
 dependencies:
   - bioconda::bwa=0.7.17=hed695b0_7
   - bioconda::samtools=1.10=h2e538c0_3
-
