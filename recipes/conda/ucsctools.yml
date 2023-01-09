@@ -1,4 +1,4 @@
-name: ucsctools-377
+name: ucsctools
 channels:
   - bioconda
   - conda-forge

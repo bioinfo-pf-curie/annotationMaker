@@ -1,4 +1,4 @@
-name: r-annot
+name: r
 channels:
   - conda-forge
   - bioconda

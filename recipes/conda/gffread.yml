@@ -1,4 +1,4 @@
-name: gffread-0.12.1
+name: gffread
 channels:
   - bioconda
   - conda-forge

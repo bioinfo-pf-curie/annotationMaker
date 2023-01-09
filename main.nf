@@ -236,7 +236,6 @@ include { kallistoIndexFlow } from './nf-modules/local/subworkflow/kallistoIndex
 
 // Processes
 include { getSoftwareVersions } from './nf-modules/common/process/utils/getSoftwareVersions'
-include { outputDocumentation } from './nf-modules/common/process/utils/outputDocumentation'
 include { getDataFromURL as getTranscriptome } from './nf-modules/common/process/custom/getDataFromURL'
 include { getDataFromURL as getAnnotation } from './nf-modules/common/process/custom/getDataFromURL'
 include { getFastaFromURL } from './nf-modules/common/process/custom/getFastaFromURL'
@@ -351,11 +350,12 @@ workflow {
       chGtf
     )
 
+    //**********************************
     // subroutines
-    //outputDocumentation(
-    //  outputDocsCh,
-    //  outputDocsImagesCh
-    //)
+
+    getSoftwareVersions(
+      versionsCh
+    )
 }
 
 workflow.onComplete {

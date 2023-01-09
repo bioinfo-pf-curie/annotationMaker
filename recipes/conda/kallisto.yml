@@ -1,4 +1,4 @@
-name: kallisto-0.46.2
+name: kallisto
 channels:
   - conda-forge
   - bioconda
