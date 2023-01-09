@@ -74,7 +74,7 @@ OTHER OPTIONS:
 --cellRangerPath    PATH   CellRanger path
 --outDir            PATH   The output directory where the results will be saved
 --skipGtfProcessing        Skip GTF processing steps
---starVersion       STRING [2.7.6a, 2.7.8a]   Version of the STAR aligned to use
+--starVersion       STRING [2.6.1b, 2.7.6a, 2.7.8a, 2.7.10a]   Version of the STAR aligned to use
 			  
 =======================================================
 Available Profiles

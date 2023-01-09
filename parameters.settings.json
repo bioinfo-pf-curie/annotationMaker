@@ -113,7 +113,7 @@
       "usage": "Version of the STAR aligned to use",
       "type": "string",
       "nargs": "1",
-      "choices": ["2.7.6a", "2.7.8a"],
+      "choices": ["2.6.1b", "2.7.6a", "2.7.8a", "2.7.10a"],
       "default_value": "2.7.8a",
       "pattern": ".*",
       "render": "textfield",

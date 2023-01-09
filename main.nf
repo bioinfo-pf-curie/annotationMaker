@@ -62,10 +62,6 @@ outputDocsCh = Channel.fromPath("$projectDir/docs/output.md")
 ==========================
 */
 
-if (params.starVersion != "2.7.8a" && params.starVersion != "2.7.6a" && params.starVersion != "2.6.1b"){
-  exit 1, "The provided STAR version is not available. Use either 2.6.1b, 2.7.6a or 2.7.8a"
-}
-
 if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
    exit 1, "The provided genome '${params.genome}' is not available in the genomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
 }
