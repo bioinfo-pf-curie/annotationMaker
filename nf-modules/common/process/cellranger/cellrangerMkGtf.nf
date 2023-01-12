@@ -31,6 +31,6 @@ process cellrangerMkGtf {
     --attribute=gene_biotype:TR_V_pseudogene --attribute=gene_biotype:TR_D_gene \
     --attribute=gene_biotype:TR_J_gene --attribute=gene_biotype:TR_J_pseudogene \
     --attribute=gene_biotype:TR_C_gene
-  echo \$(cellranger --version) > versions.txt
+  echo \$(cellranger --version | grep version | sed -e 's/--version (//' -e 's/)//' ) > versions.txt
   """
 }

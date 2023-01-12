@@ -8,7 +8,7 @@ process kallistoIndex {
   label 'highMem'
 
   input:
-  path(corrTranscrpitsFasta)
+  path(transcrpitsFasta)
 
   output:
   path("kallisto_${suffix}"), emit:index
@@ -18,10 +18,10 @@ process kallistoIndex {
   task.ext.when == null || task.ext.when
 
   script:
-  suffix=corrTranscrpitsFasta.toString() - ~/([_.])?(corrTranscripts.fa)?(.gz)?$/
+  suffix=transcrpitsFasta.toString() - ~/([_.])?(_corrected.fa)?(.gz)?$/
   """
   mkdir -p kallisto_${suffix}
-  kallisto index -i kallisto_${suffix}/transcriptome.idx $corrTranscrpitsFasta
-  echo \$(kallisto version) > versions.txt
+  kallisto index -i kallisto_${suffix}/transcriptome.idx $transcrpitsFasta
+  echo \$(kallisto version | sed -e 's/, version//') > versions.txt
   """
 }

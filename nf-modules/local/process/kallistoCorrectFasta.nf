@@ -8,21 +8,22 @@ process kallistoCorrectFasta {
   label 'lowMem'
 
   input:
-  path(transcriptsFasta)
+  path(fasta)
 
   output:
-  path("corTranscripts.fa"), emit: fasta
+  path("*_corrected.fa"), emit: fasta
   
 
   when:
   task.ext.when == null || task.ext.when
 
   script:
+  def prefix = fasta.toString() - ~/(\.fa)?(\.fasta)?$/
   """
-  cat ${transcriptsFasta} | \
+  cat ${fasta} | \
   awk -F  "|" '{if(\$0 ~ /^>.*/){print \$1;} else {print \$0;}}' | \
   sed 's/\\_mRNA//' | \
   grep -vE  ".*_PAR_Y.*" > \
-  corTranscripts.fa
+  ${prefix}_corrected.fa
   """
 }

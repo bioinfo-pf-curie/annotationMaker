@@ -20,7 +20,7 @@ process salmonIndex {
 
   script:
   def args = task.ext.args ?: ''
-  def suffix=transcrpitsFasta.toString() - ~/([_.])?(transcripts.fa)?(.gz)?$/
+  suffix=transcrpitsFasta.toString() - ~/([_.])?(transcripts.fa)?(.gz)?$/
   """
   grep "^>" ${genomeFasta} | cut -d " " -f 1 > decoys.txt
   sed -i.bak -e 's/>//g' decoys.txt

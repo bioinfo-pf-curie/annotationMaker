@@ -3,7 +3,7 @@
  */
 
 process starIndex {
-  label 'star'
+  label (params.starLabel ?: 'star')
   label 'highCpu'
   label 'extraMem'
 

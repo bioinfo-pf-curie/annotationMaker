@@ -27,6 +27,6 @@ process cellrangerMkRef {
     --fasta=$fasta \
     --genes=$gtf \
     --nthreads ${task.cpus} --memgb ${mem} --ref-version ${build}
-  echo \$(cellranger --version) > versions.txt
+  echo \$(cellranger --version | grep version | sed -e 's/--version (//' -e 's/)//' ) > versions.txt
   """
 }
