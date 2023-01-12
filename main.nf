@@ -97,7 +97,8 @@ alignersList = defineAligners()
 def aligners = params.indexes || params.indexes == 'none' ? params.indexes == 'all' ? alignersList : params.indexes.split(',').collect{it.trim().toLowerCase()} : []
 if (!checkParameterList(aligners, alignersList)) exit 1, 'Unknown Aligner(s), see --help for more information'
 
-
+// Star version label
+params.starLabel = "star" + params.starVersion.replaceAll('\\.','_');
 
 /*
 ==========================
@@ -207,6 +208,7 @@ summary = [
   'Gtf' : params.gtf ?: params.genome ? gtf : null,
   'Gff' : params.gff ?: params.genome ? gff : null,
   'Indexes' : aligners,
+  'STAR version' : "star" in aligners ? params.starLabel : null,
   'Max Resources': "${params.maxMemory} memory, ${params.maxCpus} cpus, ${params.maxTime} time per job",
   'Container': workflow.containerEngine && workflow.container ? "${workflow.containerEngine} - ${workflow.container}" : null,
   'Profile' : workflow.profile,
@@ -275,7 +277,7 @@ workflow {
     )
     if (wasGtfURL){
       chGtf = getAnnotation.out.output
-    }else if (wasGffUrl){
+    }else if (wasGffURL){
       chGff = getAnnotation.out.output
     }
 
@@ -293,6 +295,7 @@ workflow {
       chFasta,
       chBuild
     )
+    versionsCh = versionsCh.mix(fastaProcessingFlow.out.versions)
 
     //**********************************
     // Generate genome indexes
@@ -300,44 +303,53 @@ workflow {
     bwaIndex(
       chFasta
     )
+    versionsCh = versionsCh.mix(bwaIndex.out.versions)
 
     bwamem2Index(
       chFasta
     )
-    
+    versionsCh = versionsCh.mix(bwamem2Index.out.versions)
+
     dragmapIndex(
       chFasta
     )
+    versionsCh = versionsCh.mix(dragmapIndex.out.versions)
 
     starIndex(
       chFasta,
       fastaProcessingFlow.out.chromSizes,
       Channel.value([])
     )
+    versionsCh = versionsCh.mix(starIndex.out.versions)
 
     bowtie2Index(
       chFasta
     )
+    versionsCh = versionsCh.mix(bowtie2Index.out.versions)
 
     hisat2IndexFlow(
       chFasta,
       chGtf
     )
+    versionsCh = versionsCh.mix(hisat2IndexFlow.out.versions)
 
     cellrangerIndexFlow(
       chFasta,
       chGtf,
       chBuild
     )
+    versionsCh = versionsCh.mix(cellrangerIndexFlow.out.versions)
 
     kallistoIndexFlow(
       chTrsFasta
     )
+    versionsCh = versionsCh.mix(kallistoIndexFlow.out.versions)
 
     salmonIndex(
       chFasta,
       chTrsFasta
     )
+    versionsCh = versionsCh.mix(salmonIndex.out.versions)
 
     //**********************************
     // Process GTF file
@@ -345,12 +357,13 @@ workflow {
     gtfProcessingFlow(
       chGtf
     )
+    versionsCh = versionsCh.mix(gtfProcessingFlow.out.versions)
 
     //**********************************
     // subroutines
 
     getSoftwareVersions(
-      versionsCh
+      versionsCh.unique().collectFile()
     )
 }
 
